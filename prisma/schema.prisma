@@ -150,6 +150,7 @@ model Year {
   isActive  Boolean    @default(true)
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
+  dp3       DP3[]
 }
 
 model StatusDP3 {
@@ -159,6 +160,7 @@ model StatusDP3 {
   isActive  Boolean    @default(true)
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
+  dp3       DP3[]
 }
 
 model Child {
@@ -300,6 +302,39 @@ model Kesediaan {
   updatedAt           DateTime @updatedAt
 }
 
+model DP3 {
+  id                                 String   @id @default(cuid())
+  employeeId                         String
+  employee                           Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  tahunId                            String
+  tahun                              Year     @relation(fields: [tahunId], references: [id])
+  statusDP3Id                        String
+  statusDP3                          StatusDP3 @relation(fields: [statusDP3Id], references: [id])
+  kualitasKerjaNilai                 Int
+  kualitasKerjaAlasan                String?
+  kehadiranDanKedisiplinanNilai      Int
+  kehadiranDanKedisiplinanAlasan     String?
+  kerjasamaTimNilai                  Int
+  kerjasamaTimAlasan                 String?
+  komitmenVisiMisiNilai              Int
+  komitmenVisiMisiAlasan             String?
+  pengembanganDiriNilai              Int
+  pengembanganDiriAlasan             String?
+  penggunaanTeknologiNilai           Int
+  penggunaanTeknologiAlasan          String?
+  ketaatanKepatuhanNilai             Int
+  ketaatanKepatuhanAlasan            String?
+  komunikasiEfektifNilai             Int
+  komunikasiEfektifAlasan            String?
+  inisiatifProblemSolvingNilai      Int
+  inisiatifProblemSolvingAlasan     String?
+  jumlah                             Int
+  rataRata                           Int
+  bobot                              Int
+  createdAt                          DateTime @default(now())
+  updatedAt                          DateTime   @updatedAt
+}
+
 model Employee {
   id                   String           @id @default(cuid())
   employeeIdNumber     String           @unique
@@ -310,6 +345,7 @@ model Employee {
   fullName             String
   profilePhoto         String?
   placeOfBirth         String?
+  dp3                  DP3[]
   dateOfBirth          DateTime?
   gender               Gender?
   maritalStatus        MaritalStatus?
