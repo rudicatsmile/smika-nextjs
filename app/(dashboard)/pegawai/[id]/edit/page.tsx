@@ -1,0 +1,37 @@
+import { notFound } from "next/navigation"
+import { prisma } from "@/lib/prisma"
+import { EmployeeForm } from "@/components/forms/employee-form"
+
+export const dynamic = "force-dynamic"
+
+export default async function EditPegawaiPage({
+  params,
+}: {
+  params: Promise<{ id: string }>
+}) {
+  const { id } = await params
+
+  const [employee, departments, positions, religions, bloodTypes, employmentStatuses] =
+    await Promise.all([
+      prisma.employee.findUnique({ where: { id } }),
+      prisma.department.findMany({ where: { isActive: true }, orderBy: { name: "asc" } }),
+      prisma.position.findMany({ where: { isActive: true }, orderBy: { name: "asc" } }),
+      prisma.religion.findMany({ where: { isActive: true } }),
+      prisma.bloodType.findMany({ where: { isActive: true } }),
+      prisma.employmentStatusMaster.findMany({ where: { isActive: true } }),
+    ])
+
+  if (!employee) notFound()
+
+  return (
+    <EmployeeForm
+      mode="edit"
+      initialData={{ ...employee, id: employee.id } as any}
+      departments={departments}
+      positions={positions}
+      religions={religions}
+      bloodTypes={bloodTypes}
+      employmentStatuses={employmentStatuses}
+    />
+  )
+}

@@ -1,0 +1,189 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+enum Role {
+  SUPER_ADMIN
+  HR
+  PIMPINAN
+  PEGAWAI
+}
+
+enum Gender {
+  LAKI_LAKI
+  PEREMPUAN
+}
+
+enum MaritalStatus {
+  BELUM_MENIKAH
+  MENIKAH
+  CERAI_HIDUP
+  CERAI_MATI
+}
+
+enum EmploymentStatus {
+  AKTIF
+  NON_AKTIF
+  CUTI
+  PENSIUN
+}
+
+model User {
+  id           String    @id @default(cuid())
+  name         String
+  email        String?   @unique
+  nip          String?   @unique
+  passwordHash String
+  role         Role      @default(PEGAWAI)
+  isActive     Boolean   @default(true)
+  employeeId   String?   @unique
+  employee     Employee? @relation(fields: [employeeId], references: [id])
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  passwordResetTokens PasswordResetToken[]
+  activityLogs        ActivityLog[]
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String   @unique
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+model Department {
+  id          String     @id @default(cuid())
+  code        String     @unique
+  name        String
+  description String?
+  isActive    Boolean    @default(true)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  employees   Employee[]
+}
+
+model Position {
+  id          String     @id @default(cuid())
+  name        String     @unique
+  description String?
+  isActive    Boolean    @default(true)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  employees   Employee[]
+}
+
+model EmploymentStatusMaster {
+  id        String     @id @default(cuid())
+  name      String     @unique
+  isActive  Boolean    @default(true)
+  createdAt DateTime   @default(now())
+  employees Employee[]
+}
+
+model Religion {
+  id        String     @id @default(cuid())
+  name      String     @unique
+  isActive  Boolean    @default(true)
+  employees Employee[]
+}
+
+model BloodType {
+  id        String     @id @default(cuid())
+  name      String     @unique
+  isActive  Boolean    @default(true)
+  employees Employee[]
+}
+
+model Employee {
+  id                   String           @id @default(cuid())
+  employeeIdNumber     String           @unique
+  nationalIdNumber     String?          @unique
+  bpjsNumber           String?
+  taxIdNumber          String?
+  educatorIdNumber     String?
+  fullName             String
+  profilePhoto         String?
+  placeOfBirth         String?
+  dateOfBirth          DateTime?
+  gender               Gender?
+  maritalStatus        MaritalStatus?
+  employmentStatus     EmploymentStatus @default(AKTIF)
+  isBlocked            Boolean          @default(false)
+  address              String?
+  province             String?
+  postalCode           String?
+  secondaryAddress     String?
+  secondaryProvince    String?
+  secondaryPostalCode  String?
+  email                String?
+  phoneNumber          String?
+  hobbies              String?
+  height               Float?
+  weight               Float?
+  positionUnit         String?
+  positionData         String?
+  functionUnit         String?
+  taskUnit             String?
+  teachingUnit         String?
+  joinDate             DateTime?
+  highestEducation     String?
+  major                String?
+  institutionName      String?
+  graduationYear       Int?
+  departmentId         String?
+  department           Department?           @relation(fields: [departmentId], references: [id])
+  positionId           String?
+  position             Position?             @relation(fields: [positionId], references: [id])
+  employmentStatusId   String?
+  employmentStatusRef  EmploymentStatusMaster? @relation(fields: [employmentStatusId], references: [id])
+  religionId           String?
+  religion             Religion?             @relation(fields: [religionId], references: [id])
+  bloodTypeId          String?
+  bloodType            BloodType?            @relation(fields: [bloodTypeId], references: [id])
+  createdAt            DateTime         @default(now())
+  updatedAt            DateTime         @updatedAt
+
+  user      User?
+  documents EmployeeDocument[]
+  history   EmployeeHistory[]
+}
+
+model EmployeeDocument {
+  id         String   @id @default(cuid())
+  employeeId String
+  employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  name       String
+  type       String
+  fileUrl    String
+  uploadedAt DateTime @default(now())
+}
+
+model EmployeeHistory {
+  id          String   @id @default(cuid())
+  employeeId  String
+  employee    Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  type        String
+  description String
+  date        DateTime
+  createdAt   DateTime @default(now())
+}
+
+model ActivityLog {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  action    String
+  entity    String
+  entityId  String?
+  meta      String?
+  createdAt DateTime @default(now())
+}
