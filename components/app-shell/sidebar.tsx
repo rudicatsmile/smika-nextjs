@@ -6,7 +6,7 @@ import { useSession } from "next-auth/react"
 import { cn } from "@/lib/utils"
 import {
   LayoutDashboard, Users, Database, Settings, FileText,
-  ChevronLeft, ChevronRight, BookOpen, Building2, Briefcase, Award, DropletIcon, Heart, GraduationCap, History, Users as UsersIcon, ScrollText, CheckCircle, Upload, Handshake, Calendar
+  ChevronLeft, ChevronRight, BookOpen, Building2, Briefcase, Award, DropletIcon, Heart, GraduationCap, History, Users as UsersIcon, ScrollText, CheckCircle, Upload, Handshake, Calendar, BadgeCheck
 } from "lucide-react"
 import { canViewLogs, canManageMasterData, canManageUsers } from "@/lib/rbac"
 import { Role } from "@/app/generated/prisma/enums"
@@ -48,6 +48,7 @@ function buildNavItems(role?: Role): NavItem[] {
         { href: "/master/pendidikan", label: "Pendidikan", icon: GraduationCap },
         { href: "/master/pekerjaan", label: "Pekerjaan", icon: Briefcase },
         { href: "/master/tahun", label: "Tahun", icon: Calendar },
+        { href: "/master/status-dp3", label: "Status DP3", icon: BadgeCheck },
       ],
     })
   }
