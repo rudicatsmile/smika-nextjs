@@ -27,6 +27,7 @@ function buildNavItems(role?: Role): NavItem[] {
     { href: "/pelatihan", label: "Pelatihan", icon: Award },
     { href: "/sertifikasi", label: "Sertifikasi", icon: CheckCircle },
     { href: "/unit-kerja-lain", label: "Unit Kerja Lain", icon: Building2 },
+    { href: "/data-kesehatan", label: "Data Kesehatan", icon: Heart },
     { href: "/riwayat-kepegawaian", label: "Riwayat Kepegawaian", icon: FileText },
   ]
 
