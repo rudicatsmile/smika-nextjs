@@ -11,7 +11,7 @@ export default async function EmployeeDetailPage({
 }) {
   const { id } = await params
 
-  const [employee, educations, educationHistories, occupations, children, spouses, trainings, employmentDocuments, certifications] = await Promise.all([
+  const [employee, educations, educationHistories, occupations, children, spouses, trainings, employmentDocuments, certifications, workUnits] = await Promise.all([
     prisma.employee.findUnique({
       where: { id },
       include: {
@@ -53,6 +53,10 @@ export default async function EmployeeDetailPage({
       where: { employeeId: id },
       orderBy: { certificationYear: "desc" },
     }),
+    prisma.workUnit.findMany({
+      where: { employeeId: id },
+      orderBy: { createdAt: "desc" },
+    }),
   ])
 
   if (!employee) notFound()
@@ -68,6 +72,7 @@ export default async function EmployeeDetailPage({
       trainings={trainings}
       employmentDocuments={employmentDocuments}
       certifications={certifications}
+      workUnits={workUnits}
     />
   )
 }

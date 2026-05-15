@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import Link from "next/link"
-import { ArrowLeft, Edit, User, Briefcase, GraduationCap, FileText, Clock, MapPin, Phone, Mail, Calendar, Users, Award, ScrollText, CheckCircle } from "lucide-react"
+import { ArrowLeft, Edit, User, Briefcase, GraduationCap, FileText, Clock, MapPin, Phone, Mail, Calendar, Users, Award, ScrollText, CheckCircle, Building2 as BuildingIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -17,6 +17,7 @@ import { SpouseTable } from "@/components/family/spouse-table"
 import { TrainingTable } from "@/components/training/training-table"
 import { EmploymentDocumentTable } from "@/components/employment/employment-document-table"
 import { CertificationTable } from "@/components/certification/certification-table"
+import { WorkUnitTable } from "@/components/work-unit/work-unit-table"
 
 const STATUS_COLORS: Record<string, string> = {
   AKTIF: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300",
@@ -49,7 +50,7 @@ function DetailRow({ label, value }: { label: string; value?: string | number | 
   )
 }
 
-export function EmployeeDetailClient({ employee, educations, educationHistories, occupations, children, spouses, trainings, employmentDocuments, certifications }: { employee: any; educations: any[]; educationHistories: any[]; occupations: any[]; children: any[]; spouses: any[]; trainings: any[]; employmentDocuments: any[]; certifications: any[] }) {
+export function EmployeeDetailClient({ employee, educations, educationHistories, occupations, children, spouses, trainings, employmentDocuments, certifications, workUnits }: { employee: any; educations: any[]; educationHistories: any[]; occupations: any[]; children: any[]; spouses: any[]; trainings: any[]; employmentDocuments: any[]; certifications: any[]; workUnits: any[] }) {
   const initials = employee.fullName.split(" ").slice(0, 2).map((n: string) => n[0]).join("").toUpperCase()
 
   return (
@@ -122,12 +123,13 @@ export function EmployeeDetailClient({ employee, educations, educationHistories,
 
       {/* Tabs */}
       <Tabs defaultValue="personal">
-        <TabsList className="grid grid-cols-9 w-full">
+        <TabsList className="grid grid-cols-10 w-full">
           <TabsTrigger value="personal" className="text-xs"><User className="h-3.5 w-3.5 mr-1 hidden sm:block" />Personal</TabsTrigger>
           <TabsTrigger value="pekerjaan" className="text-xs"><Briefcase className="h-3.5 w-3.5 mr-1 hidden sm:block" />Pekerjaan</TabsTrigger>
           <TabsTrigger value="pendidikan" className="text-xs"><GraduationCap className="h-3.5 w-3.5 mr-1 hidden sm:block" />Pendidikan</TabsTrigger>
           <TabsTrigger value="pelatihan" className="text-xs"><Award className="h-3.5 w-3.5 mr-1 hidden sm:block" />Pelatihan</TabsTrigger>
           <TabsTrigger value="sertifikasi" className="text-xs"><CheckCircle className="h-3.5 w-3.5 mr-1 hidden sm:block" />Sertifikasi</TabsTrigger>
+          <TabsTrigger value="unit-kerja-lain" className="text-xs"><BuildingIcon className="h-3.5 w-3.5 mr-1 hidden sm:block" />Unit Kerja Lain</TabsTrigger>
           <TabsTrigger value="riwayat-kepegawaian" className="text-xs"><ScrollText className="h-3.5 w-3.5 mr-1 hidden sm:block" />Riwayat Kepegawaian</TabsTrigger>
           <TabsTrigger value="keluarga" className="text-xs"><Users className="h-3.5 w-3.5 mr-1 hidden sm:block" />Keluarga</TabsTrigger>
           <TabsTrigger value="dokumen" className="text-xs"><FileText className="h-3.5 w-3.5 mr-1 hidden sm:block" />Dokumen</TabsTrigger>
@@ -235,6 +237,14 @@ export function EmployeeDetailClient({ employee, educations, educationHistories,
           <CertificationTable
             employeeId={employee.id}
             initialData={certifications}
+          />
+        </TabsContent>
+
+        {/* Unit Kerja Lain */}
+        <TabsContent value="unit-kerja-lain">
+          <WorkUnitTable
+            employeeId={employee.id}
+            initialData={workUnits}
           />
         </TabsContent>
 
