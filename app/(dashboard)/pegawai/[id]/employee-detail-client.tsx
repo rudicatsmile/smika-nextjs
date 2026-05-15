@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import Link from "next/link"
-import { ArrowLeft, Edit, User, Briefcase, GraduationCap, FileText, Clock, MapPin, Phone, Mail, Calendar, Users, Award, ScrollText, CheckCircle, Building2 as BuildingIcon, Heart as HeartIcon } from "lucide-react"
+import { ArrowLeft, Edit, User, Briefcase, GraduationCap, FileText, Clock, MapPin, Phone, Mail, Calendar, Users as UsersIcon, Award, ScrollText, CheckCircle, Building2 as BuildingIcon, Heart as HeartIcon, Users as UsersOrgIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -19,6 +19,7 @@ import { EmploymentDocumentTable } from "@/components/employment/employment-docu
 import { CertificationTable } from "@/components/certification/certification-table"
 import { WorkUnitTable } from "@/components/work-unit/work-unit-table"
 import { HealthDataTable } from "@/components/health/health-data-table"
+import { SocialOrganizationTable } from "@/components/social-organization/social-organization-table"
 
 const STATUS_COLORS: Record<string, string> = {
   AKTIF: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300",
@@ -51,7 +52,7 @@ function DetailRow({ label, value }: { label: string; value?: string | number | 
   )
 }
 
-export function EmployeeDetailClient({ employee, educations, educationHistories, occupations, children, spouses, trainings, employmentDocuments, certifications, workUnits, healthData }: { employee: any; educations: any[]; educationHistories: any[]; occupations: any[]; children: any[]; spouses: any[]; trainings: any[]; employmentDocuments: any[]; certifications: any[]; workUnits: any[]; healthData: any[] }) {
+export function EmployeeDetailClient({ employee, educations, educationHistories, occupations, children, spouses, trainings, employmentDocuments, certifications, workUnits, healthData, socialOrganizations }: { employee: any; educations: any[]; educationHistories: any[]; occupations: any[]; children: any[]; spouses: any[]; trainings: any[]; employmentDocuments: any[]; certifications: any[]; workUnits: any[]; healthData: any[]; socialOrganizations: any[] }) {
   const initials = employee.fullName.split(" ").slice(0, 2).map((n: string) => n[0]).join("").toUpperCase()
 
   return (
@@ -124,7 +125,7 @@ export function EmployeeDetailClient({ employee, educations, educationHistories,
 
       {/* Tabs */}
       <Tabs defaultValue="personal">
-        <TabsList className="grid grid-cols-11 w-full">
+        <TabsList className="grid grid-cols-12 w-full">
           <TabsTrigger value="personal" className="text-xs"><User className="h-3.5 w-3.5 mr-1 hidden sm:block" />Personal</TabsTrigger>
           <TabsTrigger value="pekerjaan" className="text-xs"><Briefcase className="h-3.5 w-3.5 mr-1 hidden sm:block" />Pekerjaan</TabsTrigger>
           <TabsTrigger value="pendidikan" className="text-xs"><GraduationCap className="h-3.5 w-3.5 mr-1 hidden sm:block" />Pendidikan</TabsTrigger>
@@ -132,8 +133,9 @@ export function EmployeeDetailClient({ employee, educations, educationHistories,
           <TabsTrigger value="sertifikasi" className="text-xs"><CheckCircle className="h-3.5 w-3.5 mr-1 hidden sm:block" />Sertifikasi</TabsTrigger>
           <TabsTrigger value="unit-kerja-lain" className="text-xs"><BuildingIcon className="h-3.5 w-3.5 mr-1 hidden sm:block" />Unit Kerja Lain</TabsTrigger>
           <TabsTrigger value="data-kesehatan" className="text-xs"><HeartIcon className="h-3.5 w-3.5 mr-1 hidden sm:block" />Data Kesehatan</TabsTrigger>
+          <TabsTrigger value="data-organisasi-kemasyarakatan" className="text-xs"><UsersOrgIcon className="h-3.5 w-3.5 mr-1 hidden sm:block" />Org. Masyarakat</TabsTrigger>
           <TabsTrigger value="riwayat-kepegawaian" className="text-xs"><ScrollText className="h-3.5 w-3.5 mr-1 hidden sm:block" />Riwayat Kepegawaian</TabsTrigger>
-          <TabsTrigger value="keluarga" className="text-xs"><Users className="h-3.5 w-3.5 mr-1 hidden sm:block" />Keluarga</TabsTrigger>
+          <TabsTrigger value="keluarga" className="text-xs"><UsersIcon className="h-3.5 w-3.5 mr-1 hidden sm:block" />Keluarga</TabsTrigger>
           <TabsTrigger value="dokumen" className="text-xs"><FileText className="h-3.5 w-3.5 mr-1 hidden sm:block" />Dokumen</TabsTrigger>
           <TabsTrigger value="riwayat" className="text-xs"><Clock className="h-3.5 w-3.5 mr-1 hidden sm:block" />Riwayat</TabsTrigger>
         </TabsList>
@@ -255,6 +257,14 @@ export function EmployeeDetailClient({ employee, educations, educationHistories,
           <HealthDataTable
             employeeId={employee.id}
             initialData={healthData}
+          />
+        </TabsContent>
+
+        {/* Data Organisasi Kemasyarakatan */}
+        <TabsContent value="data-organisasi-kemasyarakatan">
+          <SocialOrganizationTable
+            employeeId={employee.id}
+            initialData={socialOrganizations}
           />
         </TabsContent>
 
