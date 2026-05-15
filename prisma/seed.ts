@@ -65,13 +65,51 @@ async function main() {
   console.log("✅ Religions seeded")
 
   // ── Master: Blood Types ───────────────────────────────────────────────────
-  const bloodTypeNames = ["A", "B", "AB", "O", "A+", "B+", "AB+", "O+", "A-", "B-", "AB-", "O-"]
+  const bloodData = [
+    { name: "A" },
+    { name: "B" },
+    { name: "AB" },
+    { name: "O" },
+  ]
   const bloodTypes: Record<string, string> = {}
-  for (const name of bloodTypeNames) {
-    const b = await prisma.bloodType.upsert({ where: { name }, update: {}, create: { name } })
-    bloodTypes[name] = b.id
+  for (const b of bloodData) {
+    const blood = await prisma.bloodType.upsert(
+      {
+        where: { name: b.name },
+        update: {},
+        create: b,
+      }
+    )
+    bloodTypes[blood.name] = blood.id
   }
   console.log("✅ Blood types seeded")
+
+  // ── Master: Education ──────────────────────────────────────────────────────
+  const eduData = [
+    { name: "SD", level: "SD" },
+    { name: "SMP", level: "SMP" },
+    { name: "SMA", level: "SMA" },
+    { name: "SMK", level: "SMK" },
+    { name: "D1", level: "Diploma" },
+    { name: "D2", level: "Diploma" },
+    { name: "D3", level: "Diploma" },
+    { name: "D4", level: "Diploma" },
+    { name: "S1", level: "Sarjana" },
+    { name: "S2", level: "Sarjana" },
+    { name: "S3", level: "Sarjana" },
+  ]
+  const educations: Record<string, string> = {}
+  for (const e of eduData) {
+    const edu = await prisma.education.upsert(
+      {
+        where: { name: e.name },
+        update: {},
+        create: e,
+      }
+    )
+    educations[edu.name] = edu.id
+  }
+  console.log("✅ Education seeded")
 
   // ── Dummy Employees ──────────────────────────────────────────────────────
   const employeeData = [

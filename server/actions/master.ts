@@ -213,3 +213,100 @@ export async function deleteBloodType(id: string) {
     return { error: "Gagal menghapus (mungkin masih digunakan)" }
   }
 }
+
+// ── Education ────────────────────────────────────────────────────────────────
+export async function createEducation(data: { name: string; level: string }) {
+  const session = await checkPermission()
+  if (!session) return { error: "Akses ditolak" }
+  if (!data.name || !data.level) return { error: "Nama dan level wajib diisi" }
+  try {
+    const edu = await prisma.education.create({ data })
+    await logActivity({ userId: session.user.id, action: "CREATE", entity: "Education", entityId: edu.id })
+    revalidatePath("/master/pendidikan")
+    return { success: true, id: edu.id }
+  } catch (e: any) {
+    if (e?.code === "P2002") return { error: "Nama pendidikan sudah ada" }
+    return { error: "Gagal menyimpan" }
+  }
+}
+
+export async function updateEducation(id: string, data: { name: string; level: string; isActive?: boolean }) {
+  const session = await checkPermission()
+  if (!session) return { error: "Akses ditolak" }
+  try {
+    await prisma.education.update({ where: { id }, data })
+    await logActivity({ userId: session.user.id, action: "UPDATE", entity: "Education", entityId: id })
+    revalidatePath("/master/pendidikan")
+    return { success: true }
+  } catch (e: any) {
+    if (e?.code === "P2002") return { error: "Nama pendidikan sudah ada" }
+    return { error: "Gagal memperbarui" }
+  }
+}
+
+export async function deleteEducation(id: string) {
+  const session = await checkPermission()
+  if (!session) return { error: "Akses ditolak" }
+  try {
+    await prisma.education.delete({ where: { id } })
+    await logActivity({ userId: session.user.id, action: "DELETE", entity: "Education", entityId: id })
+    revalidatePath("/master/pendidikan")
+    return { success: true }
+  } catch {
+    return { error: "Gagal menghapus (mungkin masih digunakan)" }
+  }
+}
+
+// ── Occupation ─────────────────────────────────────────────────────────────
+
+export async function createOccupation(data: { name: string; order: number }) {
+  const session = await getServerSession(authOptions)
+  if (!session?.user?.id) return { error: "Unauthorized" }
+  if (!canManageMasterData(session.user.role as Role)) return { error: "Access denied" }
+  if (!data.name) return { error: "Name is required" }
+
+  try {
+    const occupation = await prisma.occupation.create({
+      data: { name: data.name, order: data.order },
+    })
+    await logActivity({ userId: session.user.id, action: "CREATE", entity: "Occupation", entityId: occupation.id })
+    revalidatePath("/master/pekerjaan")
+    return { success: true, id: occupation.id }
+  } catch {
+    return { error: "Gagal menambahkan pekerjaan" }
+  }
+}
+
+export async function updateOccupation(id: string, data: { name: string; order: number; isActive: boolean }) {
+  const session = await getServerSession(authOptions)
+  if (!session?.user?.id) return { error: "Unauthorized" }
+  if (!canManageMasterData(session.user.role as Role)) return { error: "Access denied" }
+  if (!data.name) return { error: "Name is required" }
+
+  try {
+    await prisma.occupation.update({
+      where: { id },
+      data: { name: data.name, order: data.order, isActive: data.isActive },
+    })
+    await logActivity({ userId: session.user.id, action: "UPDATE", entity: "Occupation", entityId: id })
+    revalidatePath("/master/pekerjaan")
+    return { success: true }
+  } catch {
+    return { error: "Gagal mengupdate pekerjaan" }
+  }
+}
+
+export async function deleteOccupation(id: string) {
+  const session = await getServerSession(authOptions)
+  if (!session?.user?.id) return { error: "Unauthorized" }
+  if (!canManageMasterData(session.user.role as Role)) return { error: "Access denied" }
+
+  try {
+    await prisma.occupation.delete({ where: { id } })
+    await logActivity({ userId: session.user.id, action: "DELETE", entity: "Occupation", entityId: id })
+    revalidatePath("/master/pekerjaan")
+    return { success: true }
+  } catch {
+    return { error: "Gagal menghapus (mungkin masih digunakan)" }
+  }
+}

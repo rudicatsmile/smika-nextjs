@@ -6,7 +6,7 @@ import { useSession } from "next-auth/react"
 import { cn } from "@/lib/utils"
 import {
   LayoutDashboard, Users, Database, Settings, FileText,
-  ChevronLeft, ChevronRight, BookOpen, Building2, Briefcase, Award, DropletIcon, Heart
+  ChevronLeft, ChevronRight, BookOpen, Building2, Briefcase, Award, DropletIcon, Heart, GraduationCap, History, Users as UsersIcon, ScrollText
 } from "lucide-react"
 import { canViewLogs, canManageMasterData, canManageUsers } from "@/lib/rbac"
 import { Role } from "@/app/generated/prisma/enums"
@@ -22,6 +22,10 @@ function buildNavItems(role?: Role): NavItem[] {
   const items: NavItem[] = [
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
     { href: "/pegawai", label: "Data Pegawai", icon: Users },
+    { href: "/riwayat-pendidikan", label: "Riwayat Pendidikan", icon: History },
+    { href: "/data-keluarga", label: "Data Keluarga", icon: UsersIcon },
+    { href: "/pelatihan", label: "Pelatihan", icon: Award },
+    { href: "/riwayat-kepegawaian", label: "Riwayat Kepegawaian", icon: FileText },
   ]
 
   if (role && canManageMasterData(role)) {
@@ -35,6 +39,8 @@ function buildNavItems(role?: Role): NavItem[] {
         { href: "/master/status-kepegawaian", label: "Status Kepegawaian", icon: Award },
         { href: "/master/agama", label: "Agama", icon: BookOpen },
         { href: "/master/golongan-darah", label: "Golongan Darah", icon: DropletIcon },
+        { href: "/master/pendidikan", label: "Pendidikan", icon: GraduationCap },
+        { href: "/master/pekerjaan", label: "Pekerjaan", icon: Briefcase },
       ],
     })
   }

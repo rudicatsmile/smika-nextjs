@@ -3,7 +3,7 @@
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
-import { useState, useTransition } from "react"
+import { useState, useTransition, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -26,6 +26,7 @@ const schema = z.object({
   taxIdNumber: z.string().optional().nullable(),
   educatorIdNumber: z.string().optional().nullable(),
   fullName: z.string().min(1, "Nama lengkap wajib diisi"),
+  profilePhoto: z.string().optional().nullable(),
   placeOfBirth: z.string().optional().nullable(),
   dateOfBirth: z.string().optional().nullable(),
   gender: z.enum(["LAKI_LAKI", "PEREMPUAN"]).optional().nullable(),
@@ -71,6 +72,7 @@ interface EmployeeFormProps {
   religions: MasterOption[]
   bloodTypes: MasterOption[]
   employmentStatuses: MasterOption[]
+  educations: MasterOption[]
   mode: "create" | "edit"
 }
 
@@ -89,10 +91,11 @@ function FormField({
 }
 
 export function EmployeeForm({
-  initialData, departments, positions, religions, bloodTypes, employmentStatuses, mode,
+  initialData, departments, positions, religions, bloodTypes, employmentStatuses, educations, mode,
 }: EmployeeFormProps) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null)
 
   const toDateStr = (d: Date | string | null | undefined) => {
     if (!d) return ""
@@ -100,6 +103,25 @@ export function EmployeeForm({
     if (isNaN(dt.getTime())) return ""
     return dt.toISOString().slice(0, 10)
   }
+
+  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        const base64 = reader.result as string
+        setPhotoPreview(base64)
+        setValue("profilePhoto", base64)
+      }
+      reader.readAsDataURL(file)
+    }
+  }
+
+  useEffect(() => {
+    if (initialData?.profilePhoto) {
+      setPhotoPreview(initialData.profilePhoto)
+    }
+  }, [initialData?.profilePhoto])
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { register, handleSubmit, setValue, watch, formState: { errors } } = useForm<FormValues>({
@@ -161,10 +183,56 @@ export function EmployeeForm({
 
           {/* Personal */}
           <TabsContent value="personal">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-4">
               <Card>
-                <CardHeader className="pb-3"><CardTitle className="text-sm">Identitas Utama</CardTitle></CardHeader>
-                <CardContent className="space-y-4">
+                <CardHeader className="pb-3"><CardTitle className="text-sm">Foto Profil</CardTitle></CardHeader>
+                <CardContent>
+                  <div className="flex items-center gap-4">
+                    {photoPreview ? (
+                      <div className="relative">
+                        <img
+                          src={photoPreview}
+                          alt="Preview"
+                          className="w-24 h-24 rounded-full object-cover border-2 border-border"
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="absolute -top-2 -right-2 h-6 w-6 bg-destructive text-destructive-foreground rounded-full"
+                          onClick={() => {
+                            setPhotoPreview(null)
+                            setValue("profilePhoto", null)
+                          }}
+                        >
+                          ×
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="w-24 h-24 rounded-full bg-muted flex items-center justify-center border-2 border-dashed border-border">
+                        <User className="h-8 w-8 text-muted-foreground" />
+                      </div>
+                    )}
+                    <div className="flex-1">
+                      <Label htmlFor="photo" className="text-sm">Upload Foto</Label>
+                      <Input
+                        id="photo"
+                        type="file"
+                        accept="image/*"
+                        onChange={handlePhotoChange}
+                        className="mt-2"
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Format: JPG, PNG. Maksimal 2MB.
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Card>
+                  <CardHeader className="pb-3"><CardTitle className="text-sm">Identitas Utama</CardTitle></CardHeader>
+                  <CardContent className="space-y-4">
                   <FormField label="Nama Lengkap" error={errors.fullName?.message} required>
                     <Input {...register("fullName")} placeholder="Nama lengkap sesuai KTP" />
                   </FormField>
@@ -262,6 +330,7 @@ export function EmployeeForm({
                   </FormField>
                 </CardContent>
               </Card>
+              </div>
             </div>
           </TabsContent>
 
@@ -359,8 +428,8 @@ export function EmployeeForm({
                   >
                     <SelectTrigger><SelectValue placeholder="Pilih jenjang" /></SelectTrigger>
                     <SelectContent>
-                      {["SD","SMP","SMA_SMK","D1","D2","D3","D4","S1","S2","S3"].map((e) => (
-                        <SelectItem key={e} value={e}>{e.replace("_", "/")}</SelectItem>
+                      {educations.map((e) => (
+                        <SelectItem key={e.id} value={e.name}>{e.name}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>

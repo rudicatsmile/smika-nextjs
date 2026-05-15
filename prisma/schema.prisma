@@ -103,6 +103,109 @@ model BloodType {
   employees Employee[]
 }
 
+model Education {
+  id               String             @id @default(cuid())
+  name             String             @unique
+  level            String
+  isActive         Boolean            @default(true)
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+  educationHistories EducationHistory[]
+  children         Child[]
+  spouses          Spouse[]
+}
+
+model EducationHistory {
+  id             String     @id @default(cuid())
+  employeeId     String
+  employee       Employee   @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  educationId     String
+  education      Education @relation(fields: [educationId], references: [id])
+  institutionName String?
+  major          String?
+  graduationYear Int?
+  startDate      DateTime?
+  endDate        DateTime?
+  gpa            Float?
+  isGraduated    Boolean    @default(true)
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+}
+
+model Occupation {
+  id        String     @id @default(cuid())
+  name      String     @unique
+  order     Int        @default(0)
+  isActive  Boolean    @default(true)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  children  Child[]
+  spouses   Spouse[]
+}
+
+model Child {
+  id             String     @id @default(cuid())
+  employeeId     String
+  employee       Employee   @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  name           String
+  placeOfBirth   String?
+  dateOfBirth    DateTime?
+  gender         Gender?
+  relationship   String?
+  educationId    String?
+  education      Education? @relation(fields: [educationId], references: [id])
+  occupationId   String?
+  occupation     Occupation? @relation(fields: [occupationId], references: [id])
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+}
+
+model Spouse {
+  id             String     @id @default(cuid())
+  employeeId     String
+  employee       Employee   @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  name           String
+  placeOfBirth   String?
+  dateOfBirth    DateTime?
+  gender         Gender?
+  relationship   String?
+  educationId    String?
+  education      Education? @relation(fields: [educationId], references: [id])
+  occupationId   String?
+  occupation     Occupation? @relation(fields: [occupationId], references: [id])
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+}
+
+model Training {
+  id                String     @id @default(cuid())
+  employeeId        String
+  employee          Employee   @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  name              String
+  type              String
+  organizerLocation String?
+  batch             String?
+  date              DateTime?
+  certificateNumber String?
+  certificateDate   DateTime?
+  certificateFile   String?
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
+}
+
+model EmploymentDocument {
+  id          String     @id @default(cuid())
+  employeeId  String
+  employee    Employee   @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  letterName  String
+  date        DateTime?
+  number      String?
+  description String?
+  file        String?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+}
+
 model Employee {
   id                   String           @id @default(cuid())
   employeeIdNumber     String           @unique
@@ -152,9 +255,14 @@ model Employee {
   createdAt            DateTime         @default(now())
   updatedAt            DateTime         @updatedAt
 
-  user      User?
-  documents EmployeeDocument[]
-  history   EmployeeHistory[]
+  user               User?
+  documents          EmployeeDocument[]
+  history            EmployeeHistory[]
+  educationHistories EducationHistory[]
+  children           Child[]
+  spouses            Spouse[]
+  trainings          Training[]
+  employmentDocuments EmploymentDocument[]
 }
 
 model EmployeeDocument {

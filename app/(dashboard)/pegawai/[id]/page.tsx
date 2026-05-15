@@ -11,20 +11,58 @@ export default async function EmployeeDetailPage({
 }) {
   const { id } = await params
 
-  const employee = await prisma.employee.findUnique({
-    where: { id },
-    include: {
-      department: true,
-      position: true,
-      religion: true,
-      bloodType: true,
-      employmentStatusRef: true,
-      documents: { orderBy: { uploadedAt: "desc" } },
-      history: { orderBy: { date: "desc" } },
-    },
-  })
+  const [employee, educations, educationHistories, occupations, children, spouses, trainings, employmentDocuments] = await Promise.all([
+    prisma.employee.findUnique({
+      where: { id },
+      include: {
+        department: true,
+        position: true,
+        religion: true,
+        bloodType: true,
+        employmentStatusRef: true,
+        documents: { orderBy: { uploadedAt: "desc" } },
+        history: { orderBy: { date: "desc" } },
+      },
+    }),
+    prisma.education.findMany({ where: { isActive: true }, orderBy: { level: "asc" } }),
+    prisma.educationHistory.findMany({
+      where: { employeeId: id },
+      include: { education: true },
+      orderBy: { graduationYear: "desc" },
+    }),
+    prisma.occupation.findMany({ where: { isActive: true }, orderBy: { order: "asc" } }),
+    prisma.child.findMany({
+      where: { employeeId: id },
+      include: { education: true, occupation: true },
+      orderBy: { dateOfBirth: "desc" },
+    }),
+    prisma.spouse.findMany({
+      where: { employeeId: id },
+      include: { education: true, occupation: true },
+      orderBy: { dateOfBirth: "desc" },
+    }),
+    prisma.training.findMany({
+      where: { employeeId: id },
+      orderBy: { date: "desc" },
+    }),
+    prisma.employmentDocument.findMany({
+      where: { employeeId: id },
+      orderBy: { date: "desc" },
+    }),
+  ])
 
   if (!employee) notFound()
 
-  return <EmployeeDetailClient employee={employee} />
+  return (
+    <EmployeeDetailClient
+      employee={employee}
+      educations={educations}
+      educationHistories={educationHistories}
+      occupations={occupations}
+      children={children}
+      spouses={spouses}
+      trainings={trainings}
+      employmentDocuments={employmentDocuments}
+    />
+  )
 }

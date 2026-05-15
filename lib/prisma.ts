@@ -12,10 +12,13 @@ function createPrismaClient() {
   return new PrismaClient({ adapter })
 }
 
-const globalForPrisma = globalThis as unknown as {
-  prisma: PrismaClient | undefined
+// Disable global cache in development to ensure fresh instance after schema changes
+const prisma = process.env.NODE_ENV === "production"
+  ? (globalThis as any).prisma ?? createPrismaClient()
+  : createPrismaClient()
+
+if (process.env.NODE_ENV === "production") {
+  (globalThis as any).prisma = prisma
 }
 
-export const prisma = globalForPrisma.prisma ?? createPrismaClient()
-
-if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma
+export { prisma }

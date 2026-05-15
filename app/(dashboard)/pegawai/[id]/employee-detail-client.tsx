@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import Link from "next/link"
-import { ArrowLeft, Edit, User, Briefcase, GraduationCap, FileText, Clock, MapPin, Phone, Mail, Calendar } from "lucide-react"
+import { ArrowLeft, Edit, User, Briefcase, GraduationCap, FileText, Clock, MapPin, Phone, Mail, Calendar, Users, Award, ScrollText } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -11,6 +11,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { format } from "date-fns"
 import { id } from "date-fns/locale"
+import { EducationHistoryTable } from "@/components/education/education-history-table"
+import { ChildTable } from "@/components/family/child-table"
+import { SpouseTable } from "@/components/family/spouse-table"
+import { TrainingTable } from "@/components/training/training-table"
+import { EmploymentDocumentTable } from "@/components/employment/employment-document-table"
 
 const STATUS_COLORS: Record<string, string> = {
   AKTIF: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300",
@@ -43,7 +48,7 @@ function DetailRow({ label, value }: { label: string; value?: string | number | 
   )
 }
 
-export function EmployeeDetailClient({ employee }: { employee: any }) {
+export function EmployeeDetailClient({ employee, educations, educationHistories, occupations, children, spouses, trainings, employmentDocuments }: { employee: any; educations: any[]; educationHistories: any[]; occupations: any[]; children: any[]; spouses: any[]; trainings: any[]; employmentDocuments: any[] }) {
   const initials = employee.fullName.split(" ").slice(0, 2).map((n: string) => n[0]).join("").toUpperCase()
 
   return (
@@ -116,10 +121,13 @@ export function EmployeeDetailClient({ employee }: { employee: any }) {
 
       {/* Tabs */}
       <Tabs defaultValue="personal">
-        <TabsList className="grid grid-cols-5 w-full">
+        <TabsList className="grid grid-cols-8 w-full">
           <TabsTrigger value="personal" className="text-xs"><User className="h-3.5 w-3.5 mr-1 hidden sm:block" />Personal</TabsTrigger>
           <TabsTrigger value="pekerjaan" className="text-xs"><Briefcase className="h-3.5 w-3.5 mr-1 hidden sm:block" />Pekerjaan</TabsTrigger>
           <TabsTrigger value="pendidikan" className="text-xs"><GraduationCap className="h-3.5 w-3.5 mr-1 hidden sm:block" />Pendidikan</TabsTrigger>
+          <TabsTrigger value="pelatihan" className="text-xs"><Award className="h-3.5 w-3.5 mr-1 hidden sm:block" />Pelatihan</TabsTrigger>
+          <TabsTrigger value="riwayat-kepegawaian" className="text-xs"><ScrollText className="h-3.5 w-3.5 mr-1 hidden sm:block" />Riwayat Kepegawaian</TabsTrigger>
+          <TabsTrigger value="keluarga" className="text-xs"><Users className="h-3.5 w-3.5 mr-1 hidden sm:block" />Keluarga</TabsTrigger>
           <TabsTrigger value="dokumen" className="text-xs"><FileText className="h-3.5 w-3.5 mr-1 hidden sm:block" />Dokumen</TabsTrigger>
           <TabsTrigger value="riwayat" className="text-xs"><Clock className="h-3.5 w-3.5 mr-1 hidden sm:block" />Riwayat</TabsTrigger>
         </TabsList>
@@ -194,15 +202,56 @@ export function EmployeeDetailClient({ employee }: { employee: any }) {
 
         {/* Pendidikan */}
         <TabsContent value="pendidikan">
-          <Card>
-            <CardHeader className="pb-2"><CardTitle className="text-sm">Pendidikan Terakhir</CardTitle></CardHeader>
-            <CardContent className="space-y-0">
-              <DetailRow label="Pendidikan Terakhir" value={employee.highestEducation ? (EDU_LABELS[employee.highestEducation] ?? employee.highestEducation) : null} />
-              <DetailRow label="Jurusan / Prodi" value={employee.major} />
-              <DetailRow label="Nama Institusi" value={employee.institutionName} />
-              <DetailRow label="Tahun Lulus" value={employee.graduationYear} />
-            </CardContent>
-          </Card>
+          <div className="space-y-4">
+            <Card>
+              <CardHeader className="pb-2"><CardTitle className="text-sm">Pendidikan Terakhir</CardTitle></CardHeader>
+              <CardContent className="space-y-0">
+                <DetailRow label="Pendidikan Terakhir" value={employee.highestEducation ? (EDU_LABELS[employee.highestEducation] ?? employee.highestEducation) : null} />
+                <DetailRow label="Jurusan / Prodi" value={employee.major} />
+                <DetailRow label="Nama Institusi" value={employee.institutionName} />
+                <DetailRow label="Tahun Lulus" value={employee.graduationYear} />
+              </CardContent>
+            </Card>
+            <EducationHistoryTable
+              employeeId={employee.id}
+              initialData={educationHistories}
+              educationOptions={educations}
+            />
+          </div>
+        </TabsContent>
+
+        {/* Pelatihan */}
+        <TabsContent value="pelatihan">
+          <TrainingTable
+            employeeId={employee.id}
+            initialData={trainings}
+          />
+        </TabsContent>
+
+        {/* Riwayat Kepegawaian */}
+        <TabsContent value="riwayat-kepegawaian">
+          <EmploymentDocumentTable
+            employeeId={employee.id}
+            initialData={employmentDocuments}
+          />
+        </TabsContent>
+
+        {/* Keluarga */}
+        <TabsContent value="keluarga">
+          <div className="space-y-4">
+            <SpouseTable
+              employeeId={employee.id}
+              initialData={spouses}
+              educationOptions={educations}
+              occupationOptions={occupations}
+            />
+            <ChildTable
+              employeeId={employee.id}
+              initialData={children}
+              educationOptions={educations}
+              occupationOptions={occupations}
+            />
+          </div>
         </TabsContent>
 
         {/* Dokumen */}

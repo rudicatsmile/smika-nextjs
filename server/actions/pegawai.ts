@@ -14,6 +14,7 @@ const employeeSchema = z.object({
   taxIdNumber: z.string().optional().nullable(),
   educatorIdNumber: z.string().optional().nullable(),
   fullName: z.string().min(1, "Nama lengkap wajib diisi"),
+  profilePhoto: z.string().optional().nullable(),
   placeOfBirth: z.string().optional().nullable(),
   dateOfBirth: z.string().optional().nullable(),
   gender: z.enum(["LAKI_LAKI", "PEREMPUAN"]).optional().nullable(),
