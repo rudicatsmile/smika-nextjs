@@ -125,20 +125,22 @@ export function EmployeeDetailClient({ employee, educations, educationHistories,
 
       {/* Tabs */}
       <Tabs defaultValue="personal">
-        <TabsList className="grid grid-cols-12 w-full">
-          <TabsTrigger value="personal" className="text-xs"><User className="h-3.5 w-3.5 mr-1 hidden sm:block" />Personal</TabsTrigger>
-          <TabsTrigger value="pekerjaan" className="text-xs"><Briefcase className="h-3.5 w-3.5 mr-1 hidden sm:block" />Pekerjaan</TabsTrigger>
-          <TabsTrigger value="pendidikan" className="text-xs"><GraduationCap className="h-3.5 w-3.5 mr-1 hidden sm:block" />Pendidikan</TabsTrigger>
-          <TabsTrigger value="pelatihan" className="text-xs"><Award className="h-3.5 w-3.5 mr-1 hidden sm:block" />Pelatihan</TabsTrigger>
-          <TabsTrigger value="sertifikasi" className="text-xs"><CheckCircle className="h-3.5 w-3.5 mr-1 hidden sm:block" />Sertifikasi</TabsTrigger>
-          <TabsTrigger value="unit-kerja-lain" className="text-xs"><BuildingIcon className="h-3.5 w-3.5 mr-1 hidden sm:block" />Unit Kerja Lain</TabsTrigger>
-          <TabsTrigger value="data-kesehatan" className="text-xs"><HeartIcon className="h-3.5 w-3.5 mr-1 hidden sm:block" />Data Kesehatan</TabsTrigger>
-          <TabsTrigger value="data-organisasi-kemasyarakatan" className="text-xs"><UsersOrgIcon className="h-3.5 w-3.5 mr-1 hidden sm:block" />Org. Masyarakat</TabsTrigger>
-          <TabsTrigger value="riwayat-kepegawaian" className="text-xs"><ScrollText className="h-3.5 w-3.5 mr-1 hidden sm:block" />Riwayat Kepegawaian</TabsTrigger>
-          <TabsTrigger value="keluarga" className="text-xs"><UsersIcon className="h-3.5 w-3.5 mr-1 hidden sm:block" />Keluarga</TabsTrigger>
-          <TabsTrigger value="dokumen" className="text-xs"><FileText className="h-3.5 w-3.5 mr-1 hidden sm:block" />Dokumen</TabsTrigger>
-          <TabsTrigger value="riwayat" className="text-xs"><Clock className="h-3.5 w-3.5 mr-1 hidden sm:block" />Riwayat</TabsTrigger>
-        </TabsList>
+        <div className="mb-4">
+          <TabsList className="w-full justify-start h-auto flex-wrap gap-1 p-1">
+            <TabsTrigger value="personal" className="text-xs whitespace-nowrap"><User className="h-3.5 w-3.5 mr-1 hidden sm:block" />Personal</TabsTrigger>
+            <TabsTrigger value="pekerjaan" className="text-xs whitespace-nowrap"><Briefcase className="h-3.5 w-3.5 mr-1 hidden sm:block" />Pekerjaan</TabsTrigger>
+            <TabsTrigger value="pendidikan" className="text-xs whitespace-nowrap"><GraduationCap className="h-3.5 w-3.5 mr-1 hidden sm:block" />Pendidikan</TabsTrigger>
+            <TabsTrigger value="pelatihan" className="text-xs whitespace-nowrap"><Award className="h-3.5 w-3.5 mr-1 hidden sm:block" />Pelatihan</TabsTrigger>
+            <TabsTrigger value="sertifikasi" className="text-xs whitespace-nowrap"><CheckCircle className="h-3.5 w-3.5 mr-1 hidden sm:block" />Sertifikasi</TabsTrigger>
+            <TabsTrigger value="unit-kerja-lain" className="text-xs whitespace-nowrap"><BuildingIcon className="h-3.5 w-3.5 mr-1 hidden sm:block" />Unit Kerja Lain</TabsTrigger>
+            <TabsTrigger value="data-kesehatan" className="text-xs whitespace-nowrap"><HeartIcon className="h-3.5 w-3.5 mr-1 hidden sm:block" />Data Kesehatan</TabsTrigger>
+            <TabsTrigger value="data-organisasi-kemasyarakatan" className="text-xs whitespace-nowrap"><UsersOrgIcon className="h-3.5 w-3.5 mr-1 hidden sm:block" />Org. Masyarakat</TabsTrigger>
+            <TabsTrigger value="riwayat-kepegawaian" className="text-xs whitespace-nowrap"><ScrollText className="h-3.5 w-3.5 mr-1 hidden sm:block" />Riwayat Kepegawaian</TabsTrigger>
+            <TabsTrigger value="keluarga" className="text-xs whitespace-nowrap"><UsersIcon className="h-3.5 w-3.5 mr-1 hidden sm:block" />Keluarga</TabsTrigger>
+            <TabsTrigger value="dokumen" className="text-xs whitespace-nowrap"><FileText className="h-3.5 w-3.5 mr-1 hidden sm:block" />Dokumen</TabsTrigger>
+            <TabsTrigger value="riwayat" className="text-xs whitespace-nowrap"><Clock className="h-3.5 w-3.5 mr-1 hidden sm:block" />Riwayat</TabsTrigger>
+          </TabsList>
+        </div>
 
         {/* Personal */}
         <TabsContent value="personal">
