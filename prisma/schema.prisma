@@ -259,6 +259,29 @@ model SocialOrganization {
   updatedAt        DateTime   @updatedAt
 }
 
+model ImportantDocument {
+  id         String   @id @default(cuid())
+  employeeId String
+  employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  documentType String // KTP, KARTU_KELUARGA, IJAZAH, NPWP, BPJS, SERTIFIKASI_PENDIDIKAN, SK_PENGANGKATAN
+  fileUrl    String?
+  uploadedAt DateTime @default(now())
+  updatedAt  DateTime   @updatedAt
+}
+
+model Kesediaan {
+  id                  String   @id @default(cuid())
+  employeeId          String
+  employee            Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  tanggal             DateTime
+  isBersedia          Boolean
+  alasanKesanggupan   String?
+  kesediaanHariKerja  String?
+  photo               String?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+}
+
 model Employee {
   id                   String           @id @default(cuid())
   employeeIdNumber     String           @unique
@@ -320,6 +343,8 @@ model Employee {
   workUnits          WorkUnit[]
   healthData         HealthData[]
   socialOrganizations SocialOrganization[]
+  importantDocuments ImportantDocument[]
+  kesediaan          Kesediaan[]
 }
 
 model EmployeeDocument {
