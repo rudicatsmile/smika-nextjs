@@ -310,3 +310,57 @@ export async function deleteOccupation(id: string) {
     return { error: "Gagal menghapus (mungkin masih digunakan)" }
   }
 }
+
+// ── Year ────────────────────────────────────────────────────────────────
+
+export async function createYear(data: { name: string; order: number }) {
+  const session = await getServerSession(authOptions)
+  if (!session?.user?.id) return { error: "Unauthorized" }
+  if (!canManageMasterData(session.user.role as Role)) return { error: "Access denied" }
+  if (!data.name) return { error: "Name is required" }
+
+  try {
+    const year = await prisma.year.create({
+      data: { name: data.name, order: data.order },
+    })
+    await logActivity({ userId: session.user.id, action: "CREATE", entity: "Year", entityId: year.id })
+    revalidatePath("/master/tahun")
+    return { success: true, id: year.id }
+  } catch {
+    return { error: "Gagal menambahkan tahun" }
+  }
+}
+
+export async function updateYear(id: string, data: { name: string; order: number; isActive: boolean }) {
+  const session = await getServerSession(authOptions)
+  if (!session?.user?.id) return { error: "Unauthorized" }
+  if (!canManageMasterData(session.user.role as Role)) return { error: "Access denied" }
+  if (!data.name) return { error: "Name is required" }
+
+  try {
+    await prisma.year.update({
+      where: { id },
+      data: { name: data.name, order: data.order, isActive: data.isActive },
+    })
+    await logActivity({ userId: session.user.id, action: "UPDATE", entity: "Year", entityId: id })
+    revalidatePath("/master/tahun")
+    return { success: true }
+  } catch {
+    return { error: "Gagal mengupdate tahun" }
+  }
+}
+
+export async function deleteYear(id: string) {
+  const session = await getServerSession(authOptions)
+  if (!session?.user?.id) return { error: "Unauthorized" }
+  if (!canManageMasterData(session.user.role as Role)) return { error: "Access denied" }
+
+  try {
+    await prisma.year.delete({ where: { id } })
+    await logActivity({ userId: session.user.id, action: "DELETE", entity: "Year", entityId: id })
+    revalidatePath("/master/tahun")
+    return { success: true }
+  } catch {
+    return { error: "Gagal menghapus (mungkin masih digunakan)" }
+  }
+}
