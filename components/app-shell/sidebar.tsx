@@ -26,38 +26,38 @@ function buildNavItems(role?: Role): NavItem[] {
   ]
 
   if (role && canViewEmployeeList(role)) {
-    items.push({ href: "/pegawai", label: "Data Pegawai", icon: Users })
+    items.push({ href: "/pegawai", label: role === "PEGAWAI" ? "Profil Saya" : "Data Pegawai", icon: Users })
   }
 
-  if (role && canViewEmployeeList(role)) {
+  if (role && canViewEmployeeList(role) && role !== "PEGAWAI") {
     items.push({ href: "/riwayat-pendidikan", label: "Riwayat Pendidikan", icon: History })
   }
 
-  if (role && canViewEmployeeList(role)) {
+  if (role && canViewEmployeeList(role) && role !== "PEGAWAI") {
     items.push({ href: "/riwayat-kepegawaian", label: "Riwayat Kepegawaian", icon: FileText })
   }
 
-  if (role && canViewEmployeeList(role)) {
+  if (role && canViewEmployeeList(role) && role !== "PEGAWAI") {
     items.push({ href: "/data-keluarga", label: "Data Keluarga", icon: UsersIcon })
   }
 
-  if (role && canViewEmployeeList(role)) {
+  if (role && canViewEmployeeList(role) && role !== "PEGAWAI") {
     items.push({ href: "/pelatihan", label: "Pelatihan", icon: Award })
   }
 
-  if (role && canViewEmployeeList(role)) {
+  if (role && canViewEmployeeList(role) && role !== "PEGAWAI") {
     items.push({ href: "/sertifikasi", label: "Sertifikasi", icon: CheckCircle })
   }
 
-  if (role && canViewEmployeeList(role)) {
+  if (role && canViewEmployeeList(role) && role !== "PEGAWAI") {
     items.push({ href: "/unit-kerja-lain", label: "Unit Kerja Lain", icon: Building2 })
   }
 
-  if (role && canViewEmployeeList(role)) {
+  if (role && canViewEmployeeList(role) && role !== "PEGAWAI") {
     items.push({ href: "/data-kesehatan", label: "Data Kesehatan", icon: Heart })
   }
 
-  if (role && canViewEmployeeList(role)) {
+  if (role && canViewEmployeeList(role) && role !== "PEGAWAI") {
     items.push({ href: "/data-organisasi-kemasyarakatan", label: "Org. Kemasyarakatan", icon: Users })
   }
 

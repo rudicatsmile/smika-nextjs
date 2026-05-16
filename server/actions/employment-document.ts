@@ -3,7 +3,7 @@
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
-import { canManageEmployees } from "@/lib/rbac"
+import { canManageEmployees, canViewOwnDepartmentEmployees, canEditOwnEmployeeData } from "@/lib/rbac"
 import { Role } from "@/app/generated/prisma/enums"
 import { revalidatePath } from "next/cache"
 import { logActivity } from "@/lib/activity-log"
@@ -11,7 +11,36 @@ import { logActivity } from "@/lib/activity-log"
 async function checkPermission() {
   const session = await getServerSession(authOptions)
   if (!session?.user?.id) return null
-  if (!canManageEmployees(session.user.role as Role)) return null
+  const role = session.user.role as Role
+  if (!canManageEmployees(role) && !canViewOwnDepartmentEmployees(role) && !canEditOwnEmployeeData(role)) return null
+  return session
+}
+
+async function checkEmployeeAccess(employeeId: string) {
+  const session = await checkPermission()
+  if (!session) return null
+
+  const role = session.user.role as Role
+  const userEmployeeId = session.user.employeeId as string | undefined
+
+  if (canEditOwnEmployeeData(role) && userEmployeeId && userEmployeeId !== employeeId) {
+    return null
+  }
+
+  if (canViewOwnDepartmentEmployees(role) && userEmployeeId) {
+    const user = await prisma.employee.findUnique({
+      where: { id: userEmployeeId },
+      select: { departmentId: true },
+    })
+    const targetEmployee = await prisma.employee.findUnique({
+      where: { id: employeeId },
+      select: { departmentId: true },
+    })
+    if (user?.departmentId !== targetEmployee?.departmentId) {
+      return null
+    }
+  }
+
   return session
 }
 
@@ -23,10 +52,10 @@ export async function createEmploymentDocument(data: {
   description?: string
   file?: string
 }) {
-  const session = await checkPermission()
-  if (!session) return { error: "Access denied" }
+  const session = await checkEmployeeAccess(data.employeeId)
+  if (!session) return { error: "Anda tidak memiliki izin untuk menambahkan riwayat kepegawaian" }
   if (!data.employeeId || !data.letterName) return { error: "Employee and letter name are required" }
-  
+
   try {
     const document = await prisma.employmentDocument.create({
       data: {
@@ -54,12 +83,15 @@ export async function updateEmploymentDocument(id: string, data: {
   file?: string
 }) {
   const session = await checkPermission()
-  if (!session) return { error: "Access denied" }
-  
+  if (!session) return { error: "Anda tidak memiliki izin untuk mengedit riwayat kepegawaian" }
+
   try {
     const existing = await prisma.employmentDocument.findUnique({ where: { id } })
     if (!existing) return { error: "Employment document not found" }
-    
+
+    const accessCheck = await checkEmployeeAccess(existing.employeeId)
+    if (!accessCheck) return { error: "Anda tidak memiliki izin untuk mengedit riwayat kepegawaian ini" }
+
     await prisma.employmentDocument.update({
       where: { id },
       data: {
@@ -80,12 +112,15 @@ export async function updateEmploymentDocument(id: string, data: {
 
 export async function deleteEmploymentDocument(id: string) {
   const session = await checkPermission()
-  if (!session) return { error: "Access denied" }
-  
+  if (!session) return { error: "Anda tidak memiliki izin untuk menghapus riwayat kepegawaian" }
+
   try {
     const existing = await prisma.employmentDocument.findUnique({ where: { id } })
     if (!existing) return { error: "Employment document not found" }
-    
+
+    const accessCheck = await checkEmployeeAccess(existing.employeeId)
+    if (!accessCheck) return { error: "Anda tidak memiliki izin untuk menghapus riwayat kepegawaian ini" }
+
     await prisma.employmentDocument.delete({ where: { id } })
     await logActivity({ userId: session.user.id, action: "DELETE", entity: "EmploymentDocument", entityId: id })
     revalidatePath(`/pegawai/${existing.employeeId}`)
@@ -96,6 +131,16 @@ export async function deleteEmploymentDocument(id: string) {
 }
 
 export async function getEmploymentDocuments(employeeId: string) {
+  const session = await checkPermission()
+  if (!session) return { error: "Anda tidak memiliki izin untuk melihat riwayat kepegawaian" }
+
+  const role = session.user.role as Role
+  const userEmployeeId = session.user.employeeId as string | undefined
+
+  if (canEditOwnEmployeeData(role) && userEmployeeId && userEmployeeId !== employeeId) {
+    return { error: "Anda hanya dapat melihat riwayat kepegawaian diri sendiri" }
+  }
+
   try {
     const documents = await prisma.employmentDocument.findMany({
       where: { employeeId },
@@ -111,14 +156,34 @@ export async function getAllEmploymentDocuments(filters?: {
   departmentId?: string
   employeeId?: string
 }) {
+  const session = await checkPermission()
+  if (!session) return { error: "Anda tidak memiliki izin untuk melihat riwayat kepegawaian" }
+
+  const role = session.user.role as Role
+  const userEmployeeId = session.user.employeeId as string | undefined
+
   try {
     const where: any = {}
-    
-    if (filters?.employeeId) {
+
+    if (canEditOwnEmployeeData(role) && userEmployeeId) {
+      where.employeeId = userEmployeeId
+    } else if (filters?.employeeId) {
       where.employeeId = filters.employeeId
     } else if (filters?.departmentId) {
       where.employee = {
         departmentId: filters.departmentId,
+      }
+    }
+
+    if (canViewOwnDepartmentEmployees(role) && userEmployeeId && !filters?.employeeId) {
+      const user = await prisma.employee.findUnique({
+        where: { id: userEmployeeId },
+        select: { departmentId: true },
+      })
+      if (user?.departmentId) {
+        where.employee = {
+          departmentId: user.departmentId,
+        }
       }
     }
 

@@ -65,10 +65,12 @@ export function DP3Client({
   departments,
   years,
   employees: initialEmployees,
+  userRole,
 }: {
   departments: Department[]
   years: Year[]
   employees: Employee[]
+  userRole?: Role
 }) {
   const { data: session } = useSession()
   const role = session?.user?.role as Role | undefined
@@ -83,6 +85,12 @@ export function DP3Client({
   useEffect(() => {
     setMounted(true)
   }, [])
+
+  useEffect(() => {
+    if (userRole === "PIMPINAN" && departments.length > 0 && !selectedDepartment) {
+      setSelectedDepartment(departments[0].id)
+    }
+  }, [userRole, departments, selectedDepartment])
 
   const fetchEmployees = async () => {
     setIsPending(true)
@@ -141,17 +149,23 @@ export function DP3Client({
                 </div>
                 <div className="flex-1 min-w-[200px]">
                   <label className="text-sm font-medium mb-2 block">Departemen</label>
-                  <Select value={selectedDepartment || "all"} onValueChange={(v) => setSelectedDepartment(v === "all" ? "" : v)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Semua Departemen" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Semua Departemen</SelectItem>
-                      {departments.map((dept) => (
-                        <SelectItem key={dept.id} value={dept.id}>{dept.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  {userRole === "PIMPINAN" ? (
+                    <div className="p-2 border rounded-md bg-muted/50 text-sm">
+                      {departments.length > 0 ? departments[0].name : "-"}
+                    </div>
+                  ) : (
+                    <Select value={selectedDepartment || "all"} onValueChange={(v) => setSelectedDepartment(v === "all" ? "" : v)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Semua Departemen" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Semua Departemen</SelectItem>
+                        {departments.map((dept) => (
+                          <SelectItem key={dept.id} value={dept.id}>{dept.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
                 </div>
               </div>
             </div>

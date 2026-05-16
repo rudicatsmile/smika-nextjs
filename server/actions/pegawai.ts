@@ -6,7 +6,7 @@ import { prisma } from "@/lib/prisma"
 import { logActivity } from "@/lib/activity-log"
 import { revalidatePath } from "next/cache"
 import { z } from "zod"
-import { canManageEmployees, canViewAll } from "@/lib/rbac"
+import { canManageEmployees, canViewAll, canViewOwnDepartmentEmployees, canEditOwnEmployeeData } from "@/lib/rbac"
 import { Role } from "@/app/generated/prisma/enums"
 
 const employeeSchema = z.object({
@@ -101,7 +101,15 @@ export async function updateEmployee(id: string, data: EmployeeFormData) {
   if (!session?.user?.id) return { error: "Tidak terautentikasi" }
 
   const role = session.user.role as Role
-  if (!canManageEmployees(role)) return { error: "Anda tidak memiliki izin untuk mengedit pegawai" }
+
+  // PEGAWAI can only edit their own data
+  if (canEditOwnEmployeeData(role)) {
+    if (session.user.employeeId !== id) {
+      return { error: "Anda hanya dapat mengedit data diri sendiri" }
+    }
+  } else if (!canManageEmployees(role)) {
+    return { error: "Anda tidak memiliki izin untuk mengedit pegawai" }
+  }
 
   const parsed = employeeSchema.safeParse(data)
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Data tidak valid" }

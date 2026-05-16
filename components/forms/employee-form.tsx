@@ -5,6 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import { useState, useTransition, useEffect } from "react"
 import { useRouter } from "next/navigation"
+import { useSession } from "next-auth/react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -17,6 +18,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Loader2, Save, ArrowLeft, User, Briefcase, GraduationCap, MapPin } from "lucide-react"
 import { toast } from "sonner"
 import { createEmployee, updateEmployee, type EmployeeFormData } from "@/server/actions/pegawai"
+import { canManageEmployees } from "@/lib/rbac"
+import { Role } from "@/app/generated/prisma/enums"
 import Link from "next/link"
 
 const schema = z.object({
@@ -94,6 +97,9 @@ export function EmployeeForm({
   initialData, departments, positions, religions, bloodTypes, employmentStatuses, educations, mode,
 }: EmployeeFormProps) {
   const router = useRouter()
+  const { data: session } = useSession()
+  const role = session?.user?.role as Role | undefined
+  const canEditEmploymentData = role && canManageEmployees(role)
   const [isPending, startTransition] = useTransition()
   const [photoPreview, setPhotoPreview] = useState<string | null>(null)
 
@@ -344,6 +350,7 @@ export function EmployeeForm({
                     <Select
                       value={watch("departmentId") ?? ""}
                       onValueChange={(v) => setValue("departmentId", v || null)}
+                      disabled={!canEditEmploymentData}
                     >
                       <SelectTrigger><SelectValue placeholder="Pilih unit" /></SelectTrigger>
                       <SelectContent>
@@ -355,6 +362,7 @@ export function EmployeeForm({
                     <Select
                       value={watch("positionId") ?? ""}
                       onValueChange={(v) => setValue("positionId", v || null)}
+                      disabled={!canEditEmploymentData}
                     >
                       <SelectTrigger><SelectValue placeholder="Pilih jabatan" /></SelectTrigger>
                       <SelectContent>
@@ -366,6 +374,7 @@ export function EmployeeForm({
                     <Select
                       value={watch("employmentStatusId") ?? ""}
                       onValueChange={(v) => setValue("employmentStatusId", v || null)}
+                      disabled={!canEditEmploymentData}
                     >
                       <SelectTrigger><SelectValue placeholder="PNS, Honorer, dll." /></SelectTrigger>
                       <SelectContent>
@@ -377,6 +386,7 @@ export function EmployeeForm({
                     <Select
                       value={watch("employmentStatus")}
                       onValueChange={(v) => setValue("employmentStatus", v as any)}
+                      disabled={!canEditEmploymentData}
                     >
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
@@ -388,7 +398,7 @@ export function EmployeeForm({
                     </Select>
                   </FormField>
                   <FormField label="Tanggal Bergabung">
-                    <Input type="date" {...register("joinDate")} />
+                    <Input type="date" {...register("joinDate")} disabled={!canEditEmploymentData} />
                   </FormField>
                 </CardContent>
               </Card>
@@ -397,19 +407,19 @@ export function EmployeeForm({
                 <CardHeader className="pb-3"><CardTitle className="text-sm">Tugas & Fungsi</CardTitle></CardHeader>
                 <CardContent className="space-y-4">
                   <FormField label="Unit Posisi">
-                    <Input {...register("positionUnit")} />
+                    <Input {...register("positionUnit")} disabled={!canEditEmploymentData} />
                   </FormField>
                   <FormField label="Data Posisi">
-                    <Input {...register("positionData")} />
+                    <Input {...register("positionData")} disabled={!canEditEmploymentData} />
                   </FormField>
                   <FormField label="Unit Fungsi">
-                    <Input {...register("functionUnit")} />
+                    <Input {...register("functionUnit")} disabled={!canEditEmploymentData} />
                   </FormField>
                   <FormField label="Unit Tugas">
-                    <Input {...register("taskUnit")} />
+                    <Input {...register("taskUnit")} disabled={!canEditEmploymentData} />
                   </FormField>
                   <FormField label="Unit Mengajar">
-                    <Input {...register("teachingUnit")} />
+                    <Input {...register("teachingUnit")} disabled={!canEditEmploymentData} />
                   </FormField>
                 </CardContent>
               </Card>

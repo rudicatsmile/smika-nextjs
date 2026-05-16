@@ -29,7 +29,7 @@ import { toast } from "sonner"
 import { deleteEmployee } from "@/server/actions/pegawai"
 import { format } from "date-fns"
 import { id } from "date-fns/locale"
-import { canCreateEmployee, canEditEmployee, canDeleteEmployee, canUploadDocuments } from "@/lib/rbac"
+import { canCreateEmployee, canEditEmployee, canDeleteEmployee, canUploadDocuments, canEditOwnEmployeeData, canViewOwnDepartmentEmployees } from "@/lib/rbac"
 import { Role } from "@/app/generated/prisma/enums"
 
 const STATUS_COLORS: Record<string, string> = {
@@ -55,11 +55,12 @@ interface Props {
   total: number; page: number; limit: number
   departments: Department[]
   searchQuery: string; deptFilter: string; statusFilter: string
+  userRole?: Role
 }
 
 export function EmployeeListClient({
   employees, total, page, limit, departments,
-  searchQuery, deptFilter, statusFilter,
+  searchQuery, deptFilter, statusFilter, userRole,
 }: Props) {
   const router = useRouter()
   const pathname = usePathname()
@@ -126,53 +127,74 @@ export function EmployeeListClient({
       </div>
 
       {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        <form onSubmit={handleSearch} className="flex gap-2 flex-1">
-          <div className="relative flex-1 max-w-sm">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              className="pl-9"
-              placeholder="Cari nama, NIP, NIK, email..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
+      {userRole !== "PEGAWAI" ? (
+        <div className="flex flex-col sm:flex-row gap-3">
+          <form onSubmit={handleSearch} className="flex gap-2 flex-1">
+            <div className="relative flex-1 max-w-sm">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                className="pl-9"
+                placeholder="Cari nama, NIP, NIK, email..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </div>
+            <Button type="submit" variant="outline" size="icon">
+              <Filter className="h-4 w-4" />
+            </Button>
+          </form>
+
+          <div className="flex gap-2">
+            <Select
+              value={deptFilter || "all"}
+              onValueChange={(v) => updateParams({ dept: v === "all" ? "" : v })}
+            >
+              <SelectTrigger className="w-40">
+                <SelectValue placeholder="Semua Unit" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Semua Unit</SelectItem>
+                {departments.map((d) => (
+                  <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select
+              value={statusFilter || "all"}
+              onValueChange={(v) => updateParams({ status: v === "all" ? "" : v })}
+            >
+              <SelectTrigger className="w-36">
+                <SelectValue placeholder="Semua Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Semua Status</SelectItem>
+                {Object.entries(STATUS_LABELS).map(([k, v]) => (
+                  <SelectItem key={k} value={k}>{v}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            {/* View Toggle */}
+            <div className="flex border border-border rounded-md overflow-hidden">
+              <button
+                onClick={() => setViewMode("table")}
+                className={`p-2 ${viewMode === "table" ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}
+              >
+                <List className="h-4 w-4" />
+              </button>
+              <button
+                onClick={() => setViewMode("card")}
+                className={`p-2 ${viewMode === "card" ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}
+              >
+                <LayoutGrid className="h-4 w-4" />
+              </button>
+            </div>
           </div>
-          <Button type="submit" variant="outline" size="icon">
-            <Filter className="h-4 w-4" />
-          </Button>
-        </form>
-
+        </div>
+      ) : (
         <div className="flex gap-2">
-          <Select
-            value={deptFilter || "all"}
-            onValueChange={(v) => updateParams({ dept: v === "all" ? "" : v })}
-          >
-            <SelectTrigger className="w-40">
-              <SelectValue placeholder="Semua Unit" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Semua Unit</SelectItem>
-              {departments.map((d) => (
-                <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          <Select
-            value={statusFilter || "all"}
-            onValueChange={(v) => updateParams({ status: v === "all" ? "" : v })}
-          >
-            <SelectTrigger className="w-36">
-              <SelectValue placeholder="Semua Status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Semua Status</SelectItem>
-              {Object.entries(STATUS_LABELS).map(([k, v]) => (
-                <SelectItem key={k} value={k}>{v}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
+          <p className="text-sm text-muted-foreground">Menampilkan data pegawai Anda sendiri</p>
           {/* View Toggle */}
           <div className="flex border border-border rounded-md overflow-hidden">
             <button
@@ -189,7 +211,7 @@ export function EmployeeListClient({
             </button>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Content */}
       {viewMode === "table" ? (
@@ -316,7 +338,7 @@ function TableView({ employees, onDelete, role }: { employees: Employee[]; onDel
                       <DropdownMenuItem asChild>
                         <Link href={`/pegawai/${emp.id}`}><Eye className="mr-2 h-4 w-4" />Lihat Detail</Link>
                       </DropdownMenuItem>
-                      {role && canEditEmployee(role) && (
+                      {role && (canEditEmployee(role) || canViewOwnDepartmentEmployees(role) || canEditOwnEmployeeData(role)) && (
                         <DropdownMenuItem asChild>
                           <Link href={`/pegawai/${emp.id}/edit`}><Edit className="mr-2 h-4 w-4" />Edit</Link>
                         </DropdownMenuItem>
@@ -384,7 +406,7 @@ function CardView({ employees, onDelete, role }: { employees: Employee[]; onDele
                   <DropdownMenuItem asChild>
                     <Link href={`/pegawai/${emp.id}`}><Eye className="mr-2 h-4 w-4" />Lihat Detail</Link>
                   </DropdownMenuItem>
-                  {role && canEditEmployee(role) && (
+                  {role && (canEditEmployee(role) || canViewOwnDepartmentEmployees(role) || canEditOwnEmployeeData(role)) && (
                     <DropdownMenuItem asChild>
                       <Link href={`/pegawai/${emp.id}/edit`}><Edit className="mr-2 h-4 w-4" />Edit</Link>
                     </DropdownMenuItem>

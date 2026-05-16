@@ -3,12 +3,41 @@ import { prisma } from "@/lib/prisma"
 import * as XLSX from "xlsx"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
+import { canViewEmployeeList, canViewOwnDepartmentEmployees, canEditOwnEmployeeData } from "@/lib/rbac"
+import { Role } from "@/app/generated/prisma/enums"
 
 export async function GET() {
   const session = await getServerSession(authOptions)
   if (!session) return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
 
+  const role = session.user.role as Role
+  const userEmployeeId = session.user.employeeId as string | undefined
+
+  // Check permission
+  if (!canViewEmployeeList(role) && !canEditOwnEmployeeData(role)) {
+    return NextResponse.json({ message: "Forbidden" }, { status: 403 })
+  }
+
+  let where: any = {}
+
+  // PIMPINAN can only export their own department
+  if (canViewOwnDepartmentEmployees(role) && userEmployeeId) {
+    const user = await prisma.employee.findUnique({
+      where: { id: userEmployeeId },
+      select: { departmentId: true },
+    })
+    if (user?.departmentId) {
+      where.departmentId = user.departmentId
+    }
+  }
+
+  // PEGAWAI can only export their own data
+  if (canEditOwnEmployeeData(role) && userEmployeeId) {
+    where.id = userEmployeeId
+  }
+
   const employees = await prisma.employee.findMany({
+    where,
     include: { department: true, position: true, religion: true, bloodType: true },
     orderBy: { fullName: "asc" },
   })

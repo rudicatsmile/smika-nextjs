@@ -1,13 +1,33 @@
 import { prisma } from "@/lib/prisma"
 import { DP3Client } from "./dp3-client"
+import { getServerSession } from "next-auth"
+import { authOptions } from "@/lib/auth"
+import { Role } from "@/app/generated/prisma/enums"
 
 export const dynamic = "force-dynamic"
 
 export default async function DP3Page() {
-  const departments = await prisma.department.findMany({
+  const session = await getServerSession(authOptions)
+  const role = session?.user?.role as Role | undefined
+  const userEmployeeId = session?.user?.employeeId as string | undefined
+
+  let departments = await prisma.department.findMany({
     where: { isActive: true },
     orderBy: { name: "asc" },
   })
+
+  let whereClause: any = { employmentStatus: "AKTIF" }
+
+  if (role === "PIMPINAN" && userEmployeeId) {
+    const user = await prisma.employee.findUnique({
+      where: { id: userEmployeeId },
+      select: { departmentId: true },
+    })
+    if (user?.departmentId) {
+      departments = departments.filter((d: { id: string }) => d.id === user.departmentId)
+      whereClause.departmentId = user.departmentId
+    }
+  }
 
   const years = await prisma.year.findMany({
     where: { isActive: true },
@@ -15,7 +35,7 @@ export default async function DP3Page() {
   })
 
   const employees = await prisma.employee.findMany({
-    where: { employmentStatus: "AKTIF" },
+    where: whereClause,
     select: {
       id: true,
       fullName: true,
@@ -31,6 +51,7 @@ export default async function DP3Page() {
       departments={departments}
       years={years}
       employees={employees}
+      userRole={role}
     />
   )
 }

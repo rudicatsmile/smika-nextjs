@@ -28,7 +28,15 @@ export function canManageEmployees(role: Role): boolean {
 }
 
 export function canViewEmployeeList(role: Role): boolean {
-  return role === "SUPER_ADMIN" || role === "HR" || role === "PIMPINAN" || role === "PEMILIK_YAYASAN_1" || role === "PEMILIK_YAYASAN_2"
+  return role === "SUPER_ADMIN" || role === "HR" || role === "PIMPINAN" || role === "PEMILIK_YAYASAN_1" || role === "PEMILIK_YAYASAN_2" || role === "PEGAWAI"
+}
+
+export function canViewOwnDepartmentEmployees(role: Role): boolean {
+  return role === "PIMPINAN"
+}
+
+export function canEditOwnEmployeeData(role: Role): boolean {
+  return role === "PEGAWAI"
 }
 
 export function canCreateEmployee(role: Role): boolean {

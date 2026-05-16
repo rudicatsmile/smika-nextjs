@@ -231,10 +231,10 @@ export function AkunClient({ users, unlinkedEmployees }: { users: User[]; unlink
             </div>
             <div className="space-y-1.5">
               <Label>Tautkan ke Pegawai (opsional)</Label>
-              <Select value={form.employeeId} onValueChange={(v) => setForm({ ...form, employeeId: v })}>
+              <Select value={form.employeeId || "none"} onValueChange={(v) => setForm({ ...form, employeeId: v === "none" ? "" : v })}>
                 <SelectTrigger><SelectValue placeholder="Pilih pegawai..." /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">— Tidak ditautkan —</SelectItem>
+                  <SelectItem value="none">— Tidak ditautkan —</SelectItem>
                   {unlinkedEmployees.map((e) => (
                     <SelectItem key={e.id} value={e.id}>{e.fullName} ({e.employeeIdNumber})</SelectItem>
                   ))}

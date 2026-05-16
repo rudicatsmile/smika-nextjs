@@ -17,11 +17,11 @@ import { KesediaanFormDialog } from "@/components/kesediaan/kesediaan-form-dialo
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog"
+import { Role } from "@/app/generated/prisma/enums"
 import {
   RadioGroup, RadioGroupItem,
 } from "@/components/ui/radio-group"
 import { canSubmitKesediaan, canEditKesediaan } from "@/lib/rbac"
-import { Role } from "@/app/generated/prisma/enums"
 
 interface Department {
   id: string
@@ -47,9 +47,11 @@ interface Employee {
 export function KesediaanClient({
   departments,
   employees: initialEmployees,
+  userRole,
 }: {
   departments: Department[]
   employees: Employee[]
+  userRole?: Role
 }) {
   const { data: session } = useSession()
   const role = session?.user?.role as Role | undefined
@@ -69,6 +71,12 @@ export function KesediaanClient({
   useEffect(() => {
     setMounted(true)
   }, [])
+
+  useEffect(() => {
+    if (userRole === "PIMPINAN" && departments.length > 0 && !selectedDepartment) {
+      setSelectedDepartment(departments[0].id)
+    }
+  }, [userRole, departments, selectedDepartment])
 
   useEffect(() => {
     if (selectedDepartment) {
@@ -145,17 +153,23 @@ export function KesediaanClient({
               <div className="flex flex-wrap gap-4">
                 <div className="flex-1 min-w-[200px]">
                   <label className="text-sm font-medium mb-2 block">Departemen</label>
-                  <Select value={selectedDepartment || "all"} onValueChange={(v) => setSelectedDepartment(v === "all" ? "" : v)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Semua Departemen" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Semua Departemen</SelectItem>
-                      {departments.map((dept) => (
-                        <SelectItem key={dept.id} value={dept.id}>{dept.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  {userRole === "PIMPINAN" ? (
+                    <div className="p-2 border rounded-md bg-muted/50 text-sm">
+                      {departments.length > 0 ? departments[0].name : "-"}
+                    </div>
+                  ) : (
+                    <Select value={selectedDepartment || "all"} onValueChange={(v) => setSelectedDepartment(v === "all" ? "" : v)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Semua Departemen" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Semua Departemen</SelectItem>
+                        {departments.map((dept) => (
+                          <SelectItem key={dept.id} value={dept.id}>{dept.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
                 </div>
                 <div className="flex-1 min-w-[200px]">
                   <label className="text-sm font-medium mb-2 block">Status Kesediaan</label>

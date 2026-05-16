@@ -11,6 +11,7 @@ import { Award, Building2, User, Loader2, Calendar, MapPin, FileText, Download }
 import { getAllTrainings } from "@/server/actions/training"
 import { format } from "date-fns"
 import { id } from "date-fns/locale"
+import { Role } from "@/app/generated/prisma/enums"
 
 interface Department {
   id: string
@@ -46,9 +47,11 @@ interface Training {
 export function PelatihanClient({
   departments,
   employees,
+  userRole,
 }: {
   departments: Department[]
   employees: Employee[]
+  userRole?: Role
 }) {
   const [selectedDepartment, setSelectedDepartment] = useState<string>("")
   const [selectedEmployee, setSelectedEmployee] = useState<string>("")
@@ -60,6 +63,12 @@ export function PelatihanClient({
   useEffect(() => {
     setMounted(true)
   }, [])
+
+  useEffect(() => {
+    if (userRole === "PIMPINAN" && departments.length > 0 && !selectedDepartment) {
+      setSelectedDepartment(departments[0].id)
+    }
+  }, [userRole, departments, selectedDepartment])
 
   useEffect(() => {
     if (selectedDepartment) {
@@ -106,17 +115,23 @@ export function PelatihanClient({
           <div className="flex flex-wrap gap-4">
             <div className="flex-1 min-w-[200px]">
               <label className="text-sm font-medium mb-2 block">Departemen</label>
-              <Select value={selectedDepartment || "all"} onValueChange={(v) => setSelectedDepartment(v === "all" ? "" : v)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Semua Departemen" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Semua Departemen</SelectItem>
-                  {departments.map((dept) => (
-                    <SelectItem key={dept.id} value={dept.id}>{dept.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              {userRole === "PIMPINAN" ? (
+                <div className="p-2 border rounded-md bg-muted/50 text-sm">
+                  {departments.length > 0 ? departments[0].name : "-"}
+                </div>
+              ) : (
+                <Select value={selectedDepartment || "all"} onValueChange={(v) => setSelectedDepartment(v === "all" ? "" : v)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Semua Departemen" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Semua Departemen</SelectItem>
+                    {departments.map((dept) => (
+                      <SelectItem key={dept.id} value={dept.id}>{dept.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
             </div>
             <div className="flex-1 min-w-[200px]">
               <label className="text-sm font-medium mb-2 block">Pegawai</label>

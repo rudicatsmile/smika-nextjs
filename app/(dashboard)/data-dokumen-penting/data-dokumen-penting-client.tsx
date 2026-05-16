@@ -43,8 +43,10 @@ interface EmployeeWithDocuments {
 
 export function DataDokumenPentingClient({
   departments,
+  userRole,
 }: {
   departments: Department[]
+  userRole?: Role
 }) {
   const { data: session } = useSession()
   const role = session?.user?.role as Role | undefined
@@ -60,6 +62,12 @@ export function DataDokumenPentingClient({
   useEffect(() => {
     setMounted(true)
   }, [])
+
+  useEffect(() => {
+    if (userRole === "PIMPINAN" && departments.length > 0 && !selectedDepartment) {
+      setSelectedDepartment(departments[0].id)
+    }
+  }, [userRole, departments, selectedDepartment])
 
   const fetchEmployees = async () => {
     setIsPending(true)
@@ -138,17 +146,23 @@ export function DataDokumenPentingClient({
               <div className="flex flex-wrap gap-4">
                 <div className="flex-1 min-w-[200px]">
                   <label className="text-sm font-medium mb-2 block">Departemen</label>
-                  <Select value={selectedDepartment || "all"} onValueChange={(v) => setSelectedDepartment(v === "all" ? "" : v)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Semua Departemen" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Semua Departemen</SelectItem>
-                      {departments.map((dept) => (
-                        <SelectItem key={dept.id} value={dept.id}>{dept.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  {userRole === "PIMPINAN" ? (
+                    <div className="p-2 border rounded-md bg-muted/50 text-sm">
+                      {departments.length > 0 ? departments[0].name : "-"}
+                    </div>
+                  ) : (
+                    <Select value={selectedDepartment || "all"} onValueChange={(v) => setSelectedDepartment(v === "all" ? "" : v)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Semua Departemen" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Semua Departemen</SelectItem>
+                        {departments.map((dept) => (
+                          <SelectItem key={dept.id} value={dept.id}>{dept.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
                 </div>
                 <div className="flex-1 min-w-[200px]">
                   <label className="text-sm font-medium mb-2 block">Status Dokumen</label>
