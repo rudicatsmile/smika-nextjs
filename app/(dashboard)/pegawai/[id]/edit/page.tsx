@@ -22,7 +22,11 @@ export default async function EditPegawaiPage({
         bloodType: true,
       },
     }),
-    prisma.department.findMany({ where: { isActive: true }, orderBy: { name: "asc" } }),
+    prisma.department.findMany({ 
+      where: { isActive: true }, 
+      orderBy: { name: "asc" },
+      select: { id: true, name: true, canTeach: true }
+    }),
     prisma.position.findMany({ where: { isActive: true }, orderBy: { name: "asc" } }),
     prisma.positionDepartment.findMany(),
     prisma.religion.findMany({ where: { isActive: true } }),

@@ -3,7 +3,11 @@ import { EmployeeForm } from "@/components/forms/employee-form"
 
 export default async function TambahPegawaiPage() {
   const [departments, positions, positionDepartments, religions, bloodTypes, employmentStatuses, educations, subjects] = await Promise.all([
-    prisma.department.findMany({ where: { isActive: true }, orderBy: { name: "asc" } }),
+    prisma.department.findMany({ 
+      where: { isActive: true }, 
+      orderBy: { name: "asc" },
+      select: { id: true, name: true, canTeach: true }
+    }),
     prisma.position.findMany({ where: { isActive: true }, orderBy: { name: "asc" } }),
     prisma.positionDepartment.findMany(),
     prisma.religion.findMany({ where: { isActive: true } }),

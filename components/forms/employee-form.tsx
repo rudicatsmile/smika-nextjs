@@ -67,7 +67,7 @@ const schema = z.object({
 
 type FormValues = z.infer<typeof schema>
 
-interface MasterOption { id: string; name: string }
+interface MasterOption { id: string; name: string; canTeach?: boolean }
 
 interface PositionDepartment {
   positionId: string
@@ -159,6 +159,10 @@ export function EmployeeForm({
         positionDepartments.some((pd) => pd.positionId === pos.id && pd.departmentId === selectedDepartmentId)
       )
     : positions
+
+  // Check if selected department can teach
+  const selectedDepartment = departments.find((dept) => dept.id === selectedDepartmentId)
+  const canTeach = selectedDepartment?.canTeach ?? false
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const onSubmit = (data: any) => {
@@ -435,18 +439,20 @@ export function EmployeeForm({
                   <FormField label="Tugas">
                     <Input {...register("taskUnit")} disabled={!canEditEmploymentData} />
                   </FormField>
-                  <FormField label="Mengajar mata pelajaran">
-                    <Select
-                      value={watch("subjectId") ?? ""}
-                      onValueChange={(v) => setValue("subjectId", v || null)}
-                      disabled={!canEditEmploymentData}
-                    >
-                      <SelectTrigger><SelectValue placeholder="Pilih mata pelajaran" /></SelectTrigger>
-                      <SelectContent>
-                        {subjects.map((s) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  </FormField>
+                  {canTeach && (
+                    <FormField label="Mengajar mata pelajaran">
+                      <Select
+                        value={watch("subjectId") ?? ""}
+                        onValueChange={(v) => setValue("subjectId", v || null)}
+                        disabled={!canEditEmploymentData}
+                      >
+                        <SelectTrigger><SelectValue placeholder="Pilih mata pelajaran" /></SelectTrigger>
+                        <SelectContent>
+                          {subjects.map((s) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </FormField>
+                  )}
                 </CardContent>
               </Card>
             </div>
