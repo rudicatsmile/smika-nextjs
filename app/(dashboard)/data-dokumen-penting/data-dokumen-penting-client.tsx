@@ -211,7 +211,7 @@ export function DataDokumenPentingClient({
                       </div>
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
                         <Building2 className="h-3.5 w-3.5" />
-                        <span>{employee.department.name}</span>
+                        <span>{employee.department?.name ?? "-"}</span>
                       </div>
                       
                       <div className="flex flex-wrap gap-2 mt-2">

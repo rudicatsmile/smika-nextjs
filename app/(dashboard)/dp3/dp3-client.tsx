@@ -203,7 +203,7 @@ export function DP3Client({
                         </div>
                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
                           <Building2 className="h-3.5 w-3.5" />
-                          <span>{emp.department.name}</span>
+                          <span>{emp.department?.name ?? "-"}</span>
                         </div>
                         {latestDP3 && (
                           <div className="border-t pt-2 mt-2 space-y-1">
