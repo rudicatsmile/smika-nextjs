@@ -59,7 +59,7 @@ export async function deleteDepartment(id: string) {
 }
 
 // ── Position ────────────────────────────────────────────────────────────────
-export async function createPosition(data: { name: string; description?: string }) {
+export async function createPosition(data: { name: string; description?: string; positionType: string }) {
   const session = await checkPermission()
   if (!session) return { error: "Akses ditolak" }
   if (!data.name) return { error: "Nama wajib diisi" }
@@ -74,7 +74,7 @@ export async function createPosition(data: { name: string; description?: string 
   }
 }
 
-export async function updatePosition(id: string, data: { name: string; description?: string; isActive?: boolean }) {
+export async function updatePosition(id: string, data: { name: string; description?: string; positionType?: string; isActive?: boolean }) {
   const session = await checkPermission()
   if (!session) return { error: "Akses ditolak" }
   try {

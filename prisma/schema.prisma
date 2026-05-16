@@ -35,6 +35,11 @@ enum EmploymentStatus {
   PENSIUN
 }
 
+enum PositionType {
+  SEKOLAH
+  YAYASAN
+}
+
 model User {
   id           String    @id @default(cuid())
   name         String
@@ -74,12 +79,13 @@ model Department {
 }
 
 model Position {
-  id          String     @id @default(cuid())
-  name        String     @unique
+  id          String       @id @default(cuid())
+  name        String       @unique
   description String?
-  isActive    Boolean    @default(true)
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
+  positionType PositionType @default(SEKOLAH)
+  isActive    Boolean      @default(true)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
   employees   Employee[]
 }
 
