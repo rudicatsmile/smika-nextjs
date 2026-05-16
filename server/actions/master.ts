@@ -16,7 +16,7 @@ async function checkPermission() {
 }
 
 // ── Department ──────────────────────────────────────────────────────────────
-export async function createDepartment(data: { code: string; name: string; description?: string }) {
+export async function createDepartment(data: { code: string; name: string; description?: string; departmentType: string }) {
   const session = await checkPermission()
   if (!session) return { error: "Akses ditolak" }
   if (!data.code || !data.name) return { error: "Kode dan nama wajib diisi" }
@@ -31,7 +31,7 @@ export async function createDepartment(data: { code: string; name: string; descr
   }
 }
 
-export async function updateDepartment(id: string, data: { code: string; name: string; description?: string; isActive?: boolean }) {
+export async function updateDepartment(id: string, data: { code: string; name: string; description?: string; departmentType?: string; isActive?: boolean }) {
   const session = await checkPermission()
   if (!session) return { error: "Akses ditolak" }
   try {
@@ -59,12 +59,25 @@ export async function deleteDepartment(id: string) {
 }
 
 // ── Position ────────────────────────────────────────────────────────────────
-export async function createPosition(data: { name: string; description?: string; positionType: string }) {
+export async function createPosition(data: { name: string; description?: string; positionType: string; departmentIds?: string[] }) {
   const session = await checkPermission()
   if (!session) return { error: "Akses ditolak" }
   if (!data.name) return { error: "Nama wajib diisi" }
   try {
-    const pos = await prisma.position.create({ data })
+    const pos = await prisma.position.create({
+      data: {
+        name: data.name,
+        description: data.description,
+        positionType: data.positionType,
+        departments: data.departmentIds
+          ? {
+            create: data.departmentIds.map((deptId) => ({
+              departmentId: deptId,
+            })),
+          }
+          : undefined,
+      },
+    })
     await logActivity({ userId: session.user.id, action: "CREATE", entity: "Position", entityId: pos.id })
     revalidatePath("/master/jabatan")
     return { success: true, id: pos.id }
@@ -74,11 +87,39 @@ export async function createPosition(data: { name: string; description?: string;
   }
 }
 
-export async function updatePosition(id: string, data: { name: string; description?: string; positionType?: string; isActive?: boolean }) {
+export async function updatePosition(id: string, data: { name: string; description?: string; positionType?: string; isActive?: boolean; departmentIds?: string[] }) {
   const session = await checkPermission()
   if (!session) return { error: "Akses ditolak" }
   try {
-    await prisma.position.update({ where: { id }, data })
+    // Update basic fields
+    await prisma.position.update({
+      where: { id },
+      data: {
+        name: data.name,
+        description: data.description,
+        positionType: data.positionType,
+        isActive: data.isActive,
+      },
+    })
+
+    // Update department assignments if provided
+    if (data.departmentIds !== undefined) {
+      // Delete existing assignments
+      await prisma.positionDepartment.deleteMany({
+        where: { positionId: id },
+      })
+
+      // Create new assignments
+      if (data.departmentIds.length > 0) {
+        await prisma.positionDepartment.createMany({
+          data: data.departmentIds.map((deptId) => ({
+            positionId: id,
+            departmentId: deptId,
+          })),
+        })
+      }
+    }
+
     revalidatePath("/master/jabatan")
     return { success: true }
   } catch (e: any) {

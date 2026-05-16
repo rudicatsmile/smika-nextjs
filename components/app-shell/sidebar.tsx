@@ -7,7 +7,7 @@ import { useState, useEffect } from "react"
 import { cn } from "@/lib/utils"
 import {
   LayoutDashboard, Users, Database, Settings, FileText,
-  ChevronLeft, ChevronRight, BookOpen, Building2, Briefcase, Award, DropletIcon, Heart, GraduationCap, History, Users as UsersIcon, ScrollText, CheckCircle, Upload, Handshake, Calendar, BadgeCheck, ClipboardCheck, ChevronDown, Settings as SettingsIcon
+  ChevronLeft, ChevronRight, BookOpen, Building2, Briefcase, Award, DropletIcon, Heart, GraduationCap, History, Users as UsersIcon, ScrollText, CheckCircle, Upload, Handshake, Calendar, BadgeCheck, ClipboardCheck, ChevronDown, Settings as SettingsIcon, BarChart3
 } from "lucide-react"
 import { canViewLogs, canManageMasterData, canManageUsers, canViewEmployeeList, canViewDP3, canViewKesediaan, canManageAppConfig, canViewDocuments } from "@/lib/rbac"
 import { Role } from "@/app/generated/prisma/enums"
@@ -27,6 +27,17 @@ function buildNavItems(role?: Role): NavItem[] {
 
   if (role && canViewEmployeeList(role)) {
     items.push({ href: "/pegawai", label: role === "PEGAWAI" ? "Profil Saya" : "Data Pegawai", icon: Users })
+  }
+
+  if (role && canViewEmployeeList(role) && role !== "PEGAWAI") {
+    items.push({
+      href: "/laporan",
+      label: "Laporan",
+      icon: BarChart3,
+      children: [
+        { href: "/laporan/jabatan", label: "Laporan Jabatan", icon: Briefcase },
+      ],
+    })
   }
 
   if (role && canViewEmployeeList(role) && role !== "PEGAWAI") {

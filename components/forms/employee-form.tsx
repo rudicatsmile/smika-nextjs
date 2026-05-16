@@ -68,10 +68,16 @@ type FormValues = z.infer<typeof schema>
 
 interface MasterOption { id: string; name: string }
 
+interface PositionDepartment {
+  positionId: string
+  departmentId: string
+}
+
 interface EmployeeFormProps {
   initialData?: Partial<FormValues & { id: string }>
   departments: MasterOption[]
   positions: MasterOption[]
+  positionDepartments: PositionDepartment[]
   religions: MasterOption[]
   bloodTypes: MasterOption[]
   employmentStatuses: MasterOption[]
@@ -94,7 +100,7 @@ function FormField({
 }
 
 export function EmployeeForm({
-  initialData, departments, positions, religions, bloodTypes, employmentStatuses, educations, mode,
+  initialData, departments, positions, positionDepartments, religions, bloodTypes, employmentStatuses, educations, mode,
 }: EmployeeFormProps) {
   const router = useRouter()
   const { data: session } = useSession()
@@ -142,6 +148,15 @@ export function EmployeeForm({
       maritalStatus: (initialData?.maritalStatus as any) ?? null,
     },
   })
+
+  const selectedDepartmentId = watch("departmentId")
+
+  // Filter positions based on selected department
+  const availablePositions = selectedDepartmentId
+    ? positions.filter((pos) =>
+        positionDepartments.some((pd) => pd.positionId === pos.id && pd.departmentId === selectedDepartmentId)
+      )
+    : positions
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const onSubmit = (data: any) => {
@@ -366,7 +381,13 @@ export function EmployeeForm({
                     >
                       <SelectTrigger><SelectValue placeholder="Pilih jabatan" /></SelectTrigger>
                       <SelectContent>
-                        {positions.map((p) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
+                        {availablePositions.length === 0 ? (
+                          <div className="px-2 py-1.5 text-sm text-muted-foreground">
+                            {selectedDepartmentId ? "Tidak ada jabatan untuk departemen ini" : "Pilih departemen terlebih dahulu"}
+                          </div>
+                        ) : (
+                          availablePositions.map((p) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)
+                        )}
                       </SelectContent>
                     </Select>
                   </FormField>

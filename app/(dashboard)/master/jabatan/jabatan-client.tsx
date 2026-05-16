@@ -28,14 +28,21 @@ interface Position {
   description?: string | null
   positionType: PositionType
   isActive: boolean
+  departments: { id: string; name: string }[]
 }
 
-export function JabatanClient({ positions }: { positions: Position[] }) {
+interface Department {
+  id: string
+  name: string
+  departmentType: string
+}
+
+export function JabatanClient({ positions, departments }: { positions: Position[]; departments: Department[] }) {
   const [search, setSearch] = useState("")
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editItem, setEditItem] = useState<Position | null>(null)
   const [deleteId, setDeleteId] = useState<string | null>(null)
-  const [form, setForm] = useState<Partial<Position>>({})
+  const [form, setForm] = useState<Partial<Position> & { departmentIds?: string[] }>({})
   const [isPending, startTransition] = useTransition()
 
   const filtered = positions.filter((p) =>
@@ -44,13 +51,19 @@ export function JabatanClient({ positions }: { positions: Position[] }) {
 
   const openAdd = () => {
     setEditItem(null)
-    setForm({ positionType: PositionType.SEKOLAH })
+    setForm({ positionType: PositionType.SEKOLAH, departmentIds: [] })
     setDialogOpen(true)
   }
 
   const openEdit = (item: Position) => {
     setEditItem(item)
-    setForm({ name: item.name, description: item.description, positionType: item.positionType, isActive: item.isActive })
+    setForm({
+      name: item.name,
+      description: item.description,
+      positionType: item.positionType,
+      isActive: item.isActive,
+      departmentIds: item.departments.map((d) => d.id),
+    })
     setDialogOpen(true)
   }
 
@@ -59,8 +72,19 @@ export function JabatanClient({ positions }: { positions: Position[] }) {
     if (!form.positionType) { toast.error("Tipe jabatan wajib diisi"); return }
     startTransition(async () => {
       const result = editItem
-        ? await updatePosition(editItem.id, { name: form.name!, description: form.description, positionType: form.positionType, isActive: form.isActive })
-        : await createPosition({ name: form.name!, description: form.description, positionType: form.positionType })
+        ? await updatePosition(editItem.id, {
+            name: form.name!,
+            description: form.description || undefined,
+            positionType: form.positionType,
+            isActive: form.isActive,
+            departmentIds: form.departmentIds,
+          })
+        : await createPosition({
+            name: form.name!,
+            description: form.description || undefined,
+            positionType: form.positionType!,
+            departmentIds: form.departmentIds,
+          })
       if (result.error) toast.error(result.error)
       else {
         toast.success(editItem ? "Berhasil diperbarui" : "Berhasil ditambahkan")
@@ -89,6 +113,20 @@ export function JabatanClient({ positions }: { positions: Position[] }) {
       : "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300"
   }
 
+  const toggleDepartmentSelection = (deptId: string) => {
+    const currentIds = form.departmentIds || []
+    if (currentIds.includes(deptId)) {
+      setForm({ ...form, departmentIds: currentIds.filter((id) => id !== deptId) })
+    } else {
+      setForm({ ...form, departmentIds: [...currentIds, deptId] })
+    }
+  }
+
+  const getDepartmentName = (deptId: string) => {
+    const dept = departments.find((d) => d.id === deptId)
+    return dept ? dept.name : deptId
+  }
+
   return (
     <Card>
       <CardHeader className="flex-row items-center justify-between pb-4">
@@ -115,6 +153,7 @@ export function JabatanClient({ positions }: { positions: Position[] }) {
                 <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">#</th>
                 <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Nama</th>
                 <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider hidden md:table-cell">Tipe</th>
+                <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider hidden md:table-cell">Departemen</th>
                 <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider hidden md:table-cell">Deskripsi</th>
                 <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Status</th>
                 <th className="px-4 py-2.5"></th>
@@ -123,7 +162,7 @@ export function JabatanClient({ positions }: { positions: Position[] }) {
             <tbody className="divide-y divide-border">
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="text-center py-8 text-muted-foreground text-sm">
+                  <td colSpan={6} className="text-center py-8 text-muted-foreground text-sm">
                     Tidak ada data
                   </td>
                 </tr>
@@ -136,6 +175,24 @@ export function JabatanClient({ positions }: { positions: Position[] }) {
                       <Badge variant="secondary" className={getPositionTypeBadgeColor(item.positionType)}>
                         {getPositionTypeLabel(item.positionType)}
                       </Badge>
+                    </td>
+                    <td className="px-4 py-2.5 hidden md:table-cell">
+                      {item.departments.length > 0 ? (
+                        <div className="flex flex-wrap gap-1">
+                          {item.departments.slice(0, 2).map((dept) => (
+                            <Badge key={dept.id} variant="outline" className="text-xs">
+                              {dept.name}
+                            </Badge>
+                          ))}
+                          {item.departments.length > 2 && (
+                            <Badge variant="outline" className="text-xs">
+                              +{item.departments.length - 2}
+                            </Badge>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground text-xs">-</span>
+                      )}
                     </td>
                     <td className="px-4 py-2.5 text-muted-foreground hidden md:table-cell">
                       {item.description ?? "-"}
@@ -174,7 +231,7 @@ export function JabatanClient({ positions }: { positions: Position[] }) {
 
       {/* Add/Edit Dialog */}
       <Dialog open={dialogOpen} onOpenChange={(o) => { if (!isPending) setDialogOpen(o) }}>
-        <DialogContent>
+        <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>{editItem ? "Edit Jabatan" : "Tambah Jabatan"}</DialogTitle>
           </DialogHeader>
@@ -201,6 +258,30 @@ export function JabatanClient({ positions }: { positions: Position[] }) {
                   <SelectItem value={PositionType.YAYASAN}>Yayasan</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Departemen yang Bisa Menggunakan Jabatan Ini</Label>
+              <div className="border rounded-md p-3 max-h-48 overflow-y-auto space-y-2">
+                {departments.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">Tidak ada departemen tersedia</p>
+                ) : (
+                  departments.map((dept) => (
+                    <div key={dept.id} className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        id={`dept-${dept.id}`}
+                        checked={(form.departmentIds || []).includes(dept.id)}
+                        onChange={() => toggleDepartmentSelection(dept.id)}
+                        className="h-4 w-4 rounded border-gray-300"
+                      />
+                      <label htmlFor={`dept-${dept.id}`} className="text-sm cursor-pointer flex items-center gap-2">
+                        <span>{dept.name}</span>
+                        <Badge variant="outline" className="text-xs">{dept.departmentType}</Badge>
+                      </label>
+                    </div>
+                  ))
+                )}
+              </div>
             </div>
             <div className="space-y-1.5">
               <Label>Deskripsi</Label>

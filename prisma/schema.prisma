@@ -40,6 +40,13 @@ enum PositionType {
   YAYASAN
 }
 
+enum DepartmentType {
+  SEKOLAH
+  YAYASAN
+  SEKURITI
+  MAINTENANCE
+}
+
 model User {
   id           String    @id @default(cuid())
   name         String
@@ -67,26 +74,40 @@ model PasswordResetToken {
   createdAt DateTime @default(now())
 }
 
+model PositionDepartment {
+  id           String     @id @default(cuid())
+  positionId   String
+  departmentId String
+  position     Position   @relation(fields: [positionId], references: [id], onDelete: Cascade)
+  department   Department @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  createdAt    DateTime   @default(now())
+
+  @@unique([positionId, departmentId])
+}
+
 model Department {
-  id          String     @id @default(cuid())
-  code        String     @unique
-  name        String
-  description String?
-  isActive    Boolean    @default(true)
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
-  employees   Employee[]
+  id            String             @id @default(cuid())
+  code          String             @unique
+  name          String
+  description   String?
+  departmentType DepartmentType   @default(SEKOLAH)
+  isActive      Boolean            @default(true)
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+  employees     Employee[]
+  positions     PositionDepartment[]
 }
 
 model Position {
-  id          String       @id @default(cuid())
-  name        String       @unique
-  description String?
-  positionType PositionType @default(SEKOLAH)
-  isActive    Boolean      @default(true)
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
-  employees   Employee[]
+  id            String             @id @default(cuid())
+  name          String             @unique
+  description   String?
+  positionType  PositionType       @default(SEKOLAH)
+  isActive      Boolean            @default(true)
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+  employees     Employee[]
+  departments   PositionDepartment[]
 }
 
 model EmploymentStatusMaster {
