@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useSession } from "next-auth/react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import {
@@ -10,6 +11,8 @@ import { Badge } from "@/components/ui/badge"
 import { CheckCircle, Building2, Loader2, ClipboardCheck } from "lucide-react"
 import { getEmployeesWithDP3Status } from "@/server/actions/dp3"
 import { DP3FormDialog } from "@/components/dp3/dp3-form-dialog"
+import { canAssessDP3 } from "@/lib/rbac"
+import { Role } from "@/app/generated/prisma/enums"
 
 interface Department {
   id: string
@@ -67,6 +70,8 @@ export function DP3Client({
   years: Year[]
   employees: Employee[]
 }) {
+  const { data: session } = useSession()
+  const role = session?.user?.role as Role | undefined
   const [selectedDepartment, setSelectedDepartment] = useState<string>("")
   const [selectedYear, setSelectedYear] = useState<string>("")
   const [employees, setEmployees] = useState<Employee[]>(initialEmployees)
@@ -117,38 +122,42 @@ export function DP3Client({
           <CardTitle>Filter</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            <div className="flex flex-wrap gap-4">
-              <div className="flex-1 min-w-[200px]">
-                <label className="text-sm font-medium mb-2 block">Tahun</label>
-                <Select value={selectedYear || "all"} onValueChange={(v) => setSelectedYear(v === "all" ? "" : v)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Semua Tahun" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Semua Tahun</SelectItem>
-                    {years.map((year) => (
-                      <SelectItem key={year.id} value={year.id}>{year.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="flex-1 min-w-[200px]">
-                <label className="text-sm font-medium mb-2 block">Departemen</label>
-                <Select value={selectedDepartment || "all"} onValueChange={(v) => setSelectedDepartment(v === "all" ? "" : v)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Semua Departemen" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Semua Departemen</SelectItem>
-                    {departments.map((dept) => (
-                      <SelectItem key={dept.id} value={dept.id}>{dept.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+          {role !== "PEGAWAI" ? (
+            <div className="space-y-4">
+              <div className="flex flex-wrap gap-4">
+                <div className="flex-1 min-w-[200px]">
+                  <label className="text-sm font-medium mb-2 block">Tahun</label>
+                  <Select value={selectedYear || "all"} onValueChange={(v) => setSelectedYear(v === "all" ? "" : v)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Semua Tahun" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Semua Tahun</SelectItem>
+                      {years.map((year) => (
+                        <SelectItem key={year.id} value={year.id}>{year.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex-1 min-w-[200px]">
+                  <label className="text-sm font-medium mb-2 block">Departemen</label>
+                  <Select value={selectedDepartment || "all"} onValueChange={(v) => setSelectedDepartment(v === "all" ? "" : v)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Semua Departemen" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Semua Departemen</SelectItem>
+                      {departments.map((dept) => (
+                        <SelectItem key={dept.id} value={dept.id}>{dept.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             </div>
-          </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">Menampilkan penilaian DP3 Anda sendiri</p>
+          )}
         </CardContent>
       </Card>
 
@@ -206,9 +215,11 @@ export function DP3Client({
                           </div>
                         )}
                       </div>
-                      <Button onClick={() => handleOpenDialog(emp)} size="sm">
-                        {latestDP3 ? "Update" : "Isi Penilaian"}
-                      </Button>
+                      {role && canAssessDP3(role) && (
+                        <Button onClick={() => handleOpenDialog(emp)} size="sm">
+                          {latestDP3 ? "Update" : "Isi Penilaian"}
+                        </Button>
+                      )}
                     </div>
                   </div>
                 )

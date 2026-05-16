@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useSession } from "next-auth/react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -19,6 +20,8 @@ import {
 import {
   RadioGroup, RadioGroupItem,
 } from "@/components/ui/radio-group"
+import { canSubmitKesediaan, canEditKesediaan } from "@/lib/rbac"
+import { Role } from "@/app/generated/prisma/enums"
 
 interface Department {
   id: string
@@ -48,6 +51,8 @@ export function KesediaanClient({
   departments: Department[]
   employees: Employee[]
 }) {
+  const { data: session } = useSession()
+  const role = session?.user?.role as Role | undefined
   const [selectedDepartment, setSelectedDepartment] = useState<string>("")
   const [selectedEmployee, setSelectedEmployee] = useState<string>("")
   const [searchQuery, setSearchQuery] = useState<string>("")
@@ -123,55 +128,59 @@ export function KesediaanClient({
           <CardTitle>Filter</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            <form onSubmit={handleSearch} className="flex gap-2">
-              <div className="flex-1 relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Cari nama atau NIP..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9"
-                />
-              </div>
-              <Button type="submit">Cari</Button>
-            </form>
-            <div className="flex flex-wrap gap-4">
-              <div className="flex-1 min-w-[200px]">
-                <label className="text-sm font-medium mb-2 block">Departemen</label>
-                <Select value={selectedDepartment || "all"} onValueChange={(v) => setSelectedDepartment(v === "all" ? "" : v)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Semua Departemen" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Semua Departemen</SelectItem>
-                    {departments.map((dept) => (
-                      <SelectItem key={dept.id} value={dept.id}>{dept.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="flex-1 min-w-[200px]">
-                <label className="text-sm font-medium mb-2 block">Status Kesediaan</label>
-                <RadioGroup value={kesediaanStatusFilter} onValueChange={(v: "all" | "bersedia" | "tidak_bersedia") => setKesediaanStatusFilter(v)}>
-                  <div className="flex items-center space-x-4">
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="all" id="all" />
-                      <Label htmlFor="all">Semua</Label>
+          {role !== "PEGAWAI" ? (
+            <div className="space-y-4">
+              <form onSubmit={handleSearch} className="flex gap-2">
+                <div className="flex-1 relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Cari nama atau NIP..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-9"
+                  />
+                </div>
+                <Button type="submit">Cari</Button>
+              </form>
+              <div className="flex flex-wrap gap-4">
+                <div className="flex-1 min-w-[200px]">
+                  <label className="text-sm font-medium mb-2 block">Departemen</label>
+                  <Select value={selectedDepartment || "all"} onValueChange={(v) => setSelectedDepartment(v === "all" ? "" : v)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Semua Departemen" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Semua Departemen</SelectItem>
+                      {departments.map((dept) => (
+                        <SelectItem key={dept.id} value={dept.id}>{dept.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex-1 min-w-[200px]">
+                  <label className="text-sm font-medium mb-2 block">Status Kesediaan</label>
+                  <RadioGroup value={kesediaanStatusFilter} onValueChange={(v: "all" | "bersedia" | "tidak_bersedia") => setKesediaanStatusFilter(v)}>
+                    <div className="flex items-center space-x-4">
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="all" id="all" />
+                        <Label htmlFor="all">Semua</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="bersedia" id="bersedia" />
+                        <Label htmlFor="bersedia">Bersedia</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="tidak_bersedia" id="tidak_bersedia" />
+                        <Label htmlFor="tidak_bersedia">Tidak Bersedia</Label>
+                      </div>
                     </div>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="bersedia" id="bersedia" />
-                      <Label htmlFor="bersedia">Bersedia</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="tidak_bersedia" id="tidak_bersedia" />
-                      <Label htmlFor="tidak_bersedia">Tidak Bersedia</Label>
-                    </div>
-                  </div>
-                </RadioGroup>
+                  </RadioGroup>
+                </div>
               </div>
             </div>
-          </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">Menampilkan data kesediaan Anda sendiri</p>
+          )}
         </CardContent>
       </Card>
 
@@ -238,9 +247,11 @@ export function KesediaanClient({
                           </div>
                         )}
                       </div>
-                      <Button onClick={() => handleOpenDialog(emp)} size="sm">
-                        {latestKesediaan ? "Update" : "Isi Form"}
-                      </Button>
+                      {role && (canSubmitKesediaan(role) || canEditKesediaan(role)) && (
+                        <Button onClick={() => handleOpenDialog(emp)} size="sm">
+                          {latestKesediaan ? "Update" : "Isi Form"}
+                        </Button>
+                      )}
                     </div>
                   </div>
                 )

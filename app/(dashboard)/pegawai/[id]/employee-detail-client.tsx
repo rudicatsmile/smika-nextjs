@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import Link from "next/link"
+import { useSession } from "next-auth/react"
 import { ArrowLeft, Edit, User, Briefcase, GraduationCap, FileText, Clock, MapPin, Phone, Mail, Calendar, Users as UsersIcon, Award, ScrollText, CheckCircle, Building2 as BuildingIcon, Heart as HeartIcon, Users as UsersOrgIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -20,6 +21,8 @@ import { CertificationTable } from "@/components/certification/certification-tab
 import { WorkUnitTable } from "@/components/work-unit/work-unit-table"
 import { HealthDataTable } from "@/components/health/health-data-table"
 import { SocialOrganizationTable } from "@/components/social-organization/social-organization-table"
+import { canViewSensitivePersonalData, canViewContactData, canViewAddressData, canEditEmployee } from "@/lib/rbac"
+import { Role } from "@/app/generated/prisma/enums"
 
 const STATUS_COLORS: Record<string, string> = {
   AKTIF: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300",
@@ -53,6 +56,8 @@ function DetailRow({ label, value }: { label: string; value?: string | number | 
 }
 
 export function EmployeeDetailClient({ employee, educations, educationHistories, occupations, children, spouses, trainings, employmentDocuments, certifications, workUnits, healthData, socialOrganizations }: { employee: any; educations: any[]; educationHistories: any[]; occupations: any[]; children: any[]; spouses: any[]; trainings: any[]; employmentDocuments: any[]; certifications: any[]; workUnits: any[]; healthData: any[]; socialOrganizations: any[] }) {
+  const { data: session } = useSession()
+  const role = session?.user?.role as Role | undefined
   const initials = employee.fullName.split(" ").slice(0, 2).map((n: string) => n[0]).join("").toUpperCase()
 
   return (
@@ -65,11 +70,13 @@ export function EmployeeDetailClient({ employee, educations, educationHistories,
         <div className="flex-1">
           <h1 className="text-xl font-bold">Detail Pegawai</h1>
         </div>
-        <Button asChild>
-          <Link href={`/pegawai/${employee.id}/edit`}>
-            <Edit className="h-4 w-4 mr-2" />Edit Data
-          </Link>
-        </Button>
+        {role && canEditEmployee(role) && (
+          <Button asChild>
+            <Link href={`/pegawai/${employee.id}/edit`}>
+              <Edit className="h-4 w-4 mr-2" />Edit Data
+            </Link>
+          </Button>
+        )}
       </div>
 
       {/* Profile Card */}
@@ -101,12 +108,12 @@ export function EmployeeDetailClient({ employee, educations, educationHistories,
                 )}
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
-                {employee.email && (
+                {role && canViewContactData(role) && employee.email && (
                   <div className="flex items-center gap-2 text-muted-foreground">
                     <Mail className="h-3.5 w-3.5" />{employee.email}
                   </div>
                 )}
-                {employee.phoneNumber && (
+                {role && canViewContactData(role) && employee.phoneNumber && (
                   <div className="flex items-center gap-2 text-muted-foreground">
                     <Phone className="h-3.5 w-3.5" />{employee.phoneNumber}
                   </div>
@@ -148,7 +155,9 @@ export function EmployeeDetailClient({ employee, educations, educationHistories,
             <Card>
               <CardHeader className="pb-2"><CardTitle className="text-sm">Data Pribadi</CardTitle></CardHeader>
               <CardContent className="space-y-0">
-                <DetailRow label="NIK" value={employee.nationalIdNumber} />
+                {role && canViewSensitivePersonalData(role) && (
+                  <DetailRow label="NIK" value={employee.nationalIdNumber} />
+                )}
                 <DetailRow label="Tempat Lahir" value={employee.placeOfBirth} />
                 <DetailRow label="Tanggal Lahir" value={employee.dateOfBirth ? format(new Date(employee.dateOfBirth), "d MMMM yyyy", { locale: id }) : null} />
                 <DetailRow label="Jenis Kelamin" value={employee.gender ? GENDER_LABELS[employee.gender] : null} />
@@ -160,24 +169,33 @@ export function EmployeeDetailClient({ employee, educations, educationHistories,
                 <DetailRow label="Berat Badan" value={employee.weight ? `${employee.weight} kg` : null} />
               </CardContent>
             </Card>
-            <div className="space-y-4">
+            {role && canViewAddressData(role) ? (
+              <div className="space-y-4">
+                <Card>
+                  <CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-2"><MapPin className="h-3.5 w-3.5" />Alamat Tinggal</CardTitle></CardHeader>
+                  <CardContent className="space-y-0">
+                    <DetailRow label="Alamat" value={employee.address} />
+                    <DetailRow label="Provinsi" value={employee.province} />
+                    <DetailRow label="Kode Pos" value={employee.postalCode} />
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-2"><MapPin className="h-3.5 w-3.5" />Alamat Asal</CardTitle></CardHeader>
+                  <CardContent className="space-y-0">
+                    <DetailRow label="Alamat" value={employee.secondaryAddress} />
+                    <DetailRow label="Provinsi" value={employee.secondaryProvince} />
+                    <DetailRow label="Kode Pos" value={employee.secondaryPostalCode} />
+                  </CardContent>
+                </Card>
+              </div>
+            ) : (
               <Card>
-                <CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-2"><MapPin className="h-3.5 w-3.5" />Alamat Tinggal</CardTitle></CardHeader>
-                <CardContent className="space-y-0">
-                  <DetailRow label="Alamat" value={employee.address} />
-                  <DetailRow label="Provinsi" value={employee.province} />
-                  <DetailRow label="Kode Pos" value={employee.postalCode} />
+                <CardHeader className="pb-2"><CardTitle className="text-sm">Alamat</CardTitle></CardHeader>
+                <CardContent>
+                  <p className="text-sm text-muted-foreground">Data alamat tidak tersedia</p>
                 </CardContent>
               </Card>
-              <Card>
-                <CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-2"><MapPin className="h-3.5 w-3.5" />Alamat Asal</CardTitle></CardHeader>
-                <CardContent className="space-y-0">
-                  <DetailRow label="Alamat" value={employee.secondaryAddress} />
-                  <DetailRow label="Provinsi" value={employee.secondaryProvince} />
-                  <DetailRow label="Kode Pos" value={employee.secondaryPostalCode} />
-                </CardContent>
-              </Card>
-            </div>
+            )}
           </div>
         </TabsContent>
 

@@ -6,6 +6,8 @@ import { prisma } from "@/lib/prisma"
 import { logActivity } from "@/lib/activity-log"
 import { revalidatePath } from "next/cache"
 import { z } from "zod"
+import { canManageEmployees, canViewAll } from "@/lib/rbac"
+import { Role } from "@/app/generated/prisma/enums"
 
 const employeeSchema = z.object({
   employeeIdNumber: z.string().min(1, "NIP wajib diisi"),
@@ -61,6 +63,9 @@ export async function createEmployee(data: EmployeeFormData) {
   const session = await getServerSession(authOptions)
   if (!session?.user?.id) return { error: "Tidak terautentikasi" }
 
+  const role = session.user.role as Role
+  if (!canManageEmployees(role)) return { error: "Anda tidak memiliki izin untuk menambah pegawai" }
+
   const parsed = employeeSchema.safeParse(data)
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Data tidak valid" }
 
@@ -94,6 +99,9 @@ export async function createEmployee(data: EmployeeFormData) {
 export async function updateEmployee(id: string, data: EmployeeFormData) {
   const session = await getServerSession(authOptions)
   if (!session?.user?.id) return { error: "Tidak terautentikasi" }
+
+  const role = session.user.role as Role
+  if (!canManageEmployees(role)) return { error: "Anda tidak memiliki izin untuk mengedit pegawai" }
 
   const parsed = employeeSchema.safeParse(data)
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Data tidak valid" }
@@ -131,6 +139,9 @@ export async function deleteEmployee(id: string) {
   const session = await getServerSession(authOptions)
   if (!session?.user?.id) return { error: "Tidak terautentikasi" }
 
+  const role = session.user.role as Role
+  if (!canManageEmployees(role)) return { error: "Anda tidak memiliki izin untuk menghapus pegawai" }
+
   try {
     const employee = await prisma.employee.delete({ where: { id } })
     await logActivity({
@@ -151,6 +162,9 @@ export async function deleteEmployee(id: string) {
 export async function blockEmployee(id: string, blocked: boolean) {
   const session = await getServerSession(authOptions)
   if (!session?.user?.id) return { error: "Tidak terautentikasi" }
+
+  const role = session.user.role as Role
+  if (!canManageEmployees(role)) return { error: "Anda tidak memiliki izin untuk memblokir pegawai" }
 
   await prisma.employee.update({ where: { id }, data: { isBlocked: blocked } })
   await logActivity({

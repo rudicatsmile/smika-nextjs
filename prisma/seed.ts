@@ -229,6 +229,24 @@ async function main() {
   })
 
   console.log("✅ Users seeded")
+
+  // ── Master: DP3 Statuses ─────────────────────────────────────────────────────
+  const dp3StatusData = [
+    { name: "DRAFT", order: 1 },
+    { name: "MENUNGGU_APPROVAL_YAYASAN_1", order: 2 },
+    { name: "MENUNGGU_APPROVAL_YAYASAN_2", order: 3 },
+    { name: "APPROVED", order: 4 },
+    { name: "REJECTED", order: 5 },
+  ]
+  for (const s of dp3StatusData) {
+    await prisma.statusDP3.upsert({
+      where: { name: s.name },
+      update: {},
+      create: s,
+    })
+  }
+  console.log("✅ DP3 statuses seeded")
+
   console.log("\n🎉 Seed selesai!")
   console.log("─────────────────────────────")
   console.log("Demo credentials (semua password: admin123):")

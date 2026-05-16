@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useSession } from "next-auth/react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -11,6 +12,7 @@ import { Badge } from "@/components/ui/badge"
 import { FileText, Building2, User, Loader2, Search, Upload, Check, X, AlertCircle } from "lucide-react"
 import { getEmployeesWithDocumentStatus } from "@/server/actions/important-document"
 import { ImportantDocumentUploadDialog } from "@/components/important-document/important-document-upload-dialog"
+import { Role } from "@/app/generated/prisma/enums"
 
 const DOCUMENT_TYPES = [
   { key: "KTP", label: "KTP" },
@@ -44,6 +46,8 @@ export function DataDokumenPentingClient({
 }: {
   departments: Department[]
 }) {
+  const { data: session } = useSession()
+  const role = session?.user?.role as Role | undefined
   const [selectedDepartment, setSelectedDepartment] = useState<string>("")
   const [searchQuery, setSearchQuery] = useState<string>("")
   const [documentStatus, setDocumentStatus] = useState<"all" | "uploaded" | "not_uploaded" | "complete">("all")
@@ -117,50 +121,54 @@ export function DataDokumenPentingClient({
           <CardTitle>Filter</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            <form onSubmit={handleSearch} className="flex gap-2">
-              <div className="flex-1 relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Cari nama atau NIP..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9"
-                />
-              </div>
-              <Button type="submit">Cari</Button>
-            </form>
-            <div className="flex flex-wrap gap-4">
-              <div className="flex-1 min-w-[200px]">
-                <label className="text-sm font-medium mb-2 block">Departemen</label>
-                <Select value={selectedDepartment || "all"} onValueChange={(v) => setSelectedDepartment(v === "all" ? "" : v)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Semua Departemen" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Semua Departemen</SelectItem>
-                    {departments.map((dept) => (
-                      <SelectItem key={dept.id} value={dept.id}>{dept.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="flex-1 min-w-[200px]">
-                <label className="text-sm font-medium mb-2 block">Status Dokumen</label>
-                <Select value={documentStatus} onValueChange={(v: any) => setDocumentStatus(v)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Semua" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Semua</SelectItem>
-                    <SelectItem value="uploaded">Sudah Upload</SelectItem>
-                    <SelectItem value="not_uploaded">Belum Upload</SelectItem>
-                    <SelectItem value="complete">Lengkap</SelectItem>
-                  </SelectContent>
-                </Select>
+          {role !== "PEGAWAI" ? (
+            <div className="space-y-4">
+              <form onSubmit={handleSearch} className="flex gap-2">
+                <div className="flex-1 relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Cari nama atau NIP..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-9"
+                  />
+                </div>
+                <Button type="submit">Cari</Button>
+              </form>
+              <div className="flex flex-wrap gap-4">
+                <div className="flex-1 min-w-[200px]">
+                  <label className="text-sm font-medium mb-2 block">Departemen</label>
+                  <Select value={selectedDepartment || "all"} onValueChange={(v) => setSelectedDepartment(v === "all" ? "" : v)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Semua Departemen" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Semua Departemen</SelectItem>
+                      {departments.map((dept) => (
+                        <SelectItem key={dept.id} value={dept.id}>{dept.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex-1 min-w-[200px]">
+                  <label className="text-sm font-medium mb-2 block">Status Dokumen</label>
+                  <Select value={documentStatus} onValueChange={(v: any) => setDocumentStatus(v)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Semua Status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Semua Status</SelectItem>
+                      <SelectItem value="uploaded">Sudah Diupload</SelectItem>
+                      <SelectItem value="not_uploaded">Belum Diupload</SelectItem>
+                      <SelectItem value="complete">Lengkap</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             </div>
-          </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">Menampilkan dokumen penting Anda sendiri</p>
+          )}
         </CardContent>
       </Card>
 

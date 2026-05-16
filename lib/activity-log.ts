@@ -21,9 +21,23 @@ export async function logActivity({
         entity,
         entityId,
         meta: meta ? JSON.stringify(meta) : null,
+        ipAddress: getClientIp(),
+        userAgent: getUserAgent(),
       },
     })
   } catch {
     // Non-blocking: log failure should not break the main operation
   }
+}
+
+function getClientIp(): string | null {
+  // This would typically come from request headers in a real implementation
+  // For now, return null as this is server-side only
+  return null
+}
+
+function getUserAgent(): string | null {
+  // This would typically come from request headers in a real implementation
+  // For now, return null as this is server-side only
+  return null
 }

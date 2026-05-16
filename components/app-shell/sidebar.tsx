@@ -9,7 +9,7 @@ import {
   LayoutDashboard, Users, Database, Settings, FileText,
   ChevronLeft, ChevronRight, BookOpen, Building2, Briefcase, Award, DropletIcon, Heart, GraduationCap, History, Users as UsersIcon, ScrollText, CheckCircle, Upload, Handshake, Calendar, BadgeCheck, ClipboardCheck, ChevronDown, Settings as SettingsIcon
 } from "lucide-react"
-import { canViewLogs, canManageMasterData, canManageUsers } from "@/lib/rbac"
+import { canViewLogs, canManageMasterData, canManageUsers, canViewEmployeeList, canViewDP3, canViewKesediaan, canManageAppConfig, canViewDocuments } from "@/lib/rbac"
 import { Role } from "@/app/generated/prisma/enums"
 import { getAppConfiguration } from "@/server/actions/app-configuration"
 
@@ -23,19 +23,55 @@ interface NavItem {
 function buildNavItems(role?: Role): NavItem[] {
   const items: NavItem[] = [
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-    { href: "/pegawai", label: "Data Pegawai", icon: Users },
-    { href: "/riwayat-pendidikan", label: "Riwayat Pendidikan", icon: History },
-    { href: "/riwayat-kepegawaian", label: "Riwayat Kepegawaian", icon: FileText },
-    { href: "/data-keluarga", label: "Data Keluarga", icon: UsersIcon },
-    { href: "/pelatihan", label: "Pelatihan", icon: Award },
-    { href: "/sertifikasi", label: "Sertifikasi", icon: CheckCircle },
-    { href: "/unit-kerja-lain", label: "Unit Kerja Lain", icon: Building2 },
-    { href: "/data-kesehatan", label: "Data Kesehatan", icon: Heart },
-    { href: "/data-organisasi-kemasyarakatan", label: "Org. Kemasyarakatan", icon: Users },
-    { href: "/data-dokumen-penting", label: "Dokumen Penting", icon: Upload },
-    { href: "/kesediaan", label: "Form Kesediaan", icon: Handshake },
-    { href: "/dp3", label: "Penilaian DP3", icon: ClipboardCheck },
   ]
+
+  if (role && canViewEmployeeList(role)) {
+    items.push({ href: "/pegawai", label: "Data Pegawai", icon: Users })
+  }
+
+  if (role && canViewEmployeeList(role)) {
+    items.push({ href: "/riwayat-pendidikan", label: "Riwayat Pendidikan", icon: History })
+  }
+
+  if (role && canViewEmployeeList(role)) {
+    items.push({ href: "/riwayat-kepegawaian", label: "Riwayat Kepegawaian", icon: FileText })
+  }
+
+  if (role && canViewEmployeeList(role)) {
+    items.push({ href: "/data-keluarga", label: "Data Keluarga", icon: UsersIcon })
+  }
+
+  if (role && canViewEmployeeList(role)) {
+    items.push({ href: "/pelatihan", label: "Pelatihan", icon: Award })
+  }
+
+  if (role && canViewEmployeeList(role)) {
+    items.push({ href: "/sertifikasi", label: "Sertifikasi", icon: CheckCircle })
+  }
+
+  if (role && canViewEmployeeList(role)) {
+    items.push({ href: "/unit-kerja-lain", label: "Unit Kerja Lain", icon: Building2 })
+  }
+
+  if (role && canViewEmployeeList(role)) {
+    items.push({ href: "/data-kesehatan", label: "Data Kesehatan", icon: Heart })
+  }
+
+  if (role && canViewEmployeeList(role)) {
+    items.push({ href: "/data-organisasi-kemasyarakatan", label: "Org. Kemasyarakatan", icon: Users })
+  }
+
+  if (role && canViewDocuments(role)) {
+    items.push({ href: "/data-dokumen-penting", label: "Dokumen Penting", icon: Upload })
+  }
+
+  if (role && canViewKesediaan(role)) {
+    items.push({ href: "/kesediaan", label: "Form Kesediaan", icon: Handshake })
+  }
+
+  if (role && canViewDP3(role)) {
+    items.push({ href: "/dp3", label: "Penilaian DP3", icon: ClipboardCheck })
+  }
 
   if (role && canManageMasterData(role)) {
     items.push({ href: "/pengaturan", label: "Pengaturan", icon: SettingsIcon })

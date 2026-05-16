@@ -3,15 +3,36 @@
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
-import { canManageEmployees } from "@/lib/rbac"
+import { canSubmitKesediaan, canEditKesediaan, canDeleteKesediaan, canViewKesediaan } from "@/lib/rbac"
 import { Role } from "@/app/generated/prisma/enums"
 import { revalidatePath } from "next/cache"
 import { logActivity } from "@/lib/activity-log"
 
-async function checkPermission() {
+async function checkSubmitPermission() {
   const session = await getServerSession(authOptions)
   if (!session?.user?.id) return null
-  if (!canManageEmployees(session.user.role as Role)) return null
+  if (!canSubmitKesediaan(session.user.role as Role)) return null
+  return session
+}
+
+async function checkEditPermission() {
+  const session = await getServerSession(authOptions)
+  if (!session?.user?.id) return null
+  if (!canEditKesediaan(session.user.role as Role)) return null
+  return session
+}
+
+async function checkDeletePermission() {
+  const session = await getServerSession(authOptions)
+  if (!session?.user?.id) return null
+  if (!canDeleteKesediaan(session.user.role as Role)) return null
+  return session
+}
+
+async function checkViewPermission() {
+  const session = await getServerSession(authOptions)
+  if (!session?.user?.id) return null
+  if (!canViewKesediaan(session.user.role as Role)) return null
   return session
 }
 
@@ -23,8 +44,8 @@ export async function createKesediaan(data: {
   kesediaanHariKerja?: string
   photo?: string
 }) {
-  const session = await checkPermission()
-  if (!session) return { error: "Access denied" }
+  const session = await checkSubmitPermission()
+  if (!session) return { error: "Anda tidak memiliki izin untuk mengirim kesediaan" }
   if (!data.employeeId) return { error: "Employee is required" }
 
   try {
@@ -55,8 +76,8 @@ export async function updateKesediaan(id: string, data: {
   kesediaanHariKerja?: string
   photo?: string
 }) {
-  const session = await checkPermission()
-  if (!session) return { error: "Access denied" }
+  const session = await checkEditPermission()
+  if (!session) return { error: "Anda tidak memiliki izin untuk mengubah kesediaan" }
 
   try {
     const existing = await prisma.kesediaan.findUnique({ where: { id } })
@@ -82,8 +103,8 @@ export async function updateKesediaan(id: string, data: {
 }
 
 export async function deleteKesediaan(id: string) {
-  const session = await checkPermission()
-  if (!session) return { error: "Access denied" }
+  const session = await checkDeletePermission()
+  if (!session) return { error: "Anda tidak memiliki izin untuk menghapus kesediaan" }
 
   try {
     const existing = await prisma.kesediaan.findUnique({ where: { id } })
@@ -100,7 +121,17 @@ export async function deleteKesediaan(id: string) {
 }
 
 export async function getKesediaan(employeeId: string) {
+  const session = await checkViewPermission()
+  if (!session) return { error: "Anda tidak memiliki izin untuk melihat kesediaan" }
+
+  const role = session.user.role as Role
+
   try {
+    // PEGAWAI can only see their own data
+    if (role === "PEGAWAI" && session.user.employeeId && session.user.employeeId !== employeeId) {
+      return { error: "Anda tidak memiliki izin untuk melihat kesediaan pegawai lain" }
+    }
+
     const kesediaan = await prisma.kesediaan.findMany({
       where: { employeeId },
       orderBy: { tanggal: 'desc' },
@@ -116,10 +147,18 @@ export async function getAllKesediaan(filters?: {
   employeeId?: string
   search?: string
 }) {
+  const session = await checkViewPermission()
+  if (!session) return { error: "Anda tidak memiliki izin untuk melihat kesediaan" }
+
+  const role = session.user.role as Role
+
   try {
     const where: any = {}
 
-    if (filters?.employeeId) {
+    // PEGAWAI can only see their own data
+    if (role === "PEGAWAI" && session.user.employeeId) {
+      where.employeeId = session.user.employeeId
+    } else if (filters?.employeeId) {
       where.employeeId = filters.employeeId
     } else if (filters?.departmentId) {
       where.employee = {
@@ -164,12 +203,20 @@ export async function getEmployeesWithKesediaanStatus(filters?: {
   search?: string
   kesediaanStatus?: "all" | "bersedia" | "tidak_bersedia"
 }) {
+  const session = await checkViewPermission()
+  if (!session) return { error: "Anda tidak memiliki izin untuk melihat kesediaan" }
+
+  const role = session.user.role as Role
+
   try {
     const where: any = {
       employmentStatus: "AKTIF",
     }
 
-    if (filters?.departmentId) {
+    // PEGAWAI can only see their own data
+    if (role === "PEGAWAI" && session.user.employeeId) {
+      where.id = session.user.employeeId
+    } else if (filters?.departmentId) {
       where.departmentId = filters.departmentId
     }
 

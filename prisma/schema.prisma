@@ -432,6 +432,8 @@ model ActivityLog {
   entity    String
   entityId  String?
   meta      String?
+  ipAddress String?
+  userAgent String?
   createdAt DateTime @default(now())
 }
 

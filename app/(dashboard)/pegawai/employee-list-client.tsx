@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react"
 import { useRouter, usePathname } from "next/navigation"
 import Link from "next/link"
+import { useSession } from "next-auth/react"
 import {
   Search, Plus, Filter, LayoutGrid, List, Eye, Edit, Trash2,
   ChevronLeft, ChevronRight, Upload, Download, MoreHorizontal,
@@ -28,6 +29,8 @@ import { toast } from "sonner"
 import { deleteEmployee } from "@/server/actions/pegawai"
 import { format } from "date-fns"
 import { id } from "date-fns/locale"
+import { canCreateEmployee, canEditEmployee, canDeleteEmployee, canUploadDocuments } from "@/lib/rbac"
+import { Role } from "@/app/generated/prisma/enums"
 
 const STATUS_COLORS: Record<string, string> = {
   AKTIF: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300",
@@ -60,6 +63,8 @@ export function EmployeeListClient({
 }: Props) {
   const router = useRouter()
   const pathname = usePathname()
+  const { data: session } = useSession()
+  const role = session?.user?.role as Role | undefined
   const [viewMode, setViewMode] = useState<"table" | "card">("table")
   const [search, setSearch] = useState(searchQuery)
   const [deleteId, setDeleteId] = useState<string | null>(null)
@@ -104,15 +109,19 @@ export function EmployeeListClient({
           <p className="text-muted-foreground text-sm">{total} pegawai ditemukan</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" asChild>
-            <Link href="/pegawai/import"><Upload className="h-4 w-4 mr-1.5" />Import</Link>
-          </Button>
+          {role && canUploadDocuments(role) && (
+            <Button variant="outline" size="sm" asChild>
+              <Link href="/pegawai/import"><Upload className="h-4 w-4 mr-1.5" />Import</Link>
+            </Button>
+          )}
           <Button variant="outline" size="sm" asChild>
             <a href="/api/pegawai/export"><Download className="h-4 w-4 mr-1.5" />Export</a>
           </Button>
-          <Button size="sm" asChild>
-            <Link href="/pegawai/baru"><Plus className="h-4 w-4 mr-1.5" />Tambah Pegawai</Link>
-          </Button>
+          {role && canCreateEmployee(role) && (
+            <Button size="sm" asChild>
+              <Link href="/pegawai/baru"><Plus className="h-4 w-4 mr-1.5" />Tambah Pegawai</Link>
+            </Button>
+          )}
         </div>
       </div>
 
@@ -184,9 +193,9 @@ export function EmployeeListClient({
 
       {/* Content */}
       {viewMode === "table" ? (
-        <TableView employees={employees} onDelete={setDeleteId} />
+        <TableView employees={employees} onDelete={(id) => setDeleteId(id)} role={role} />
       ) : (
-        <CardView employees={employees} onDelete={setDeleteId} />
+        <CardView employees={employees} onDelete={(id) => setDeleteId(id)} role={role} />
       )}
 
       {/* Pagination */}
@@ -239,7 +248,7 @@ export function EmployeeListClient({
   )
 }
 
-function TableView({ employees, onDelete }: { employees: Employee[]; onDelete: (id: string) => void }) {
+function TableView({ employees, onDelete, role }: { employees: Employee[]; onDelete: (id: string) => void; role?: Role }) {
   if (employees.length === 0) {
     return (
       <div className="bg-card border border-border rounded-xl p-12 text-center">
@@ -307,15 +316,19 @@ function TableView({ employees, onDelete }: { employees: Employee[]; onDelete: (
                       <DropdownMenuItem asChild>
                         <Link href={`/pegawai/${emp.id}`}><Eye className="mr-2 h-4 w-4" />Lihat Detail</Link>
                       </DropdownMenuItem>
-                      <DropdownMenuItem asChild>
-                        <Link href={`/pegawai/${emp.id}/edit`}><Edit className="mr-2 h-4 w-4" />Edit</Link>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        className="text-destructive focus:text-destructive"
-                        onClick={() => onDelete(emp.id)}
-                      >
-                        <Trash2 className="mr-2 h-4 w-4" />Hapus
-                      </DropdownMenuItem>
+                      {role && canEditEmployee(role) && (
+                        <DropdownMenuItem asChild>
+                          <Link href={`/pegawai/${emp.id}/edit`}><Edit className="mr-2 h-4 w-4" />Edit</Link>
+                        </DropdownMenuItem>
+                      )}
+                      {role && canDeleteEmployee(role) && (
+                        <DropdownMenuItem
+                          className="text-destructive focus:text-destructive"
+                          onClick={() => onDelete(emp.id)}
+                        >
+                          <Trash2 className="mr-2 h-4 w-4" />Hapus
+                        </DropdownMenuItem>
+                      )}
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </td>
@@ -339,7 +352,7 @@ function Users(props: any) {
   )
 }
 
-function CardView({ employees, onDelete }: { employees: Employee[]; onDelete: (id: string) => void }) {
+function CardView({ employees, onDelete, role }: { employees: Employee[]; onDelete: (id: string) => void; role?: Role }) {
   if (employees.length === 0) {
     return (
       <div className="bg-card border border-border rounded-xl p-12 text-center">
@@ -371,12 +384,16 @@ function CardView({ employees, onDelete }: { employees: Employee[]; onDelete: (i
                   <DropdownMenuItem asChild>
                     <Link href={`/pegawai/${emp.id}`}><Eye className="mr-2 h-4 w-4" />Lihat Detail</Link>
                   </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link href={`/pegawai/${emp.id}/edit`}><Edit className="mr-2 h-4 w-4" />Edit</Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem className="text-destructive" onClick={() => onDelete(emp.id)}>
-                    <Trash2 className="mr-2 h-4 w-4" />Hapus
-                  </DropdownMenuItem>
+                  {role && canEditEmployee(role) && (
+                    <DropdownMenuItem asChild>
+                      <Link href={`/pegawai/${emp.id}/edit`}><Edit className="mr-2 h-4 w-4" />Edit</Link>
+                    </DropdownMenuItem>
+                  )}
+                  {role && canDeleteEmployee(role) && (
+                    <DropdownMenuItem className="text-destructive" onClick={() => onDelete(emp.id)}>
+                      <Trash2 className="mr-2 h-4 w-4" />Hapus
+                    </DropdownMenuItem>
+                  )}
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
