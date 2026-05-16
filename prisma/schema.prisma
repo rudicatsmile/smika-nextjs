@@ -91,6 +91,7 @@ model Department {
   name          String
   description   String?
   departmentType DepartmentType   @default(SEKOLAH)
+  canTeach      Boolean            @default(false)
   isActive      Boolean            @default(true)
   createdAt     DateTime           @default(now())
   updatedAt     DateTime           @updatedAt
@@ -142,6 +143,15 @@ model Education {
   educationHistories EducationHistory[]
   children         Child[]
   spouses          Spouse[]
+}
+
+model Subject {
+  id        String     @id @default(cuid())
+  name      String     @unique
+  urutan    Int
+  isActive  Boolean    @default(true)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
 }
 
 model EducationHistory {

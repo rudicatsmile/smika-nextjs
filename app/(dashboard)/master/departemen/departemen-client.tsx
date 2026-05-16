@@ -30,6 +30,7 @@ interface Department {
   code: string
   description?: string | null
   departmentType: DepartmentType
+  canTeach: boolean
   isActive: boolean
 }
 
@@ -48,13 +49,13 @@ export function DepartemenClient({ departments }: { departments: Department[] })
 
   const openAdd = () => {
     setEditItem(null)
-    setForm({ departmentType: DepartmentType.SEKOLAH })
+    setForm({ departmentType: DepartmentType.SEKOLAH, canTeach: false })
     setDialogOpen(true)
   }
 
   const openEdit = (item: Department) => {
     setEditItem(item)
-    setForm({ name: item.name, code: item.code, description: item.description, departmentType: item.departmentType, isActive: item.isActive })
+    setForm({ name: item.name, code: item.code, description: item.description, departmentType: item.departmentType, canTeach: item.canTeach, isActive: item.isActive })
     setDialogOpen(true)
   }
 
@@ -64,8 +65,8 @@ export function DepartemenClient({ departments }: { departments: Department[] })
     if (!form.departmentType) { toast.error("Tipe departemen wajib diisi"); return }
     startTransition(async () => {
       const result = editItem
-        ? await updateDepartment(editItem.id, { code: form.code!, name: form.name!, description: form.description, departmentType: form.departmentType, isActive: form.isActive })
-        : await createDepartment({ code: form.code!, name: form.name!, description: form.description, departmentType: form.departmentType })
+        ? await updateDepartment(editItem.id, { code: form.code!, name: form.name!, description: form.description || undefined, departmentType: form.departmentType, canTeach: form.canTeach, isActive: form.isActive })
+        : await createDepartment({ code: form.code!, name: form.name!, description: form.description || undefined, departmentType: form.departmentType!, canTeach: form.canTeach })
       if (result.error) toast.error(result.error)
       else {
         toast.success(editItem ? "Berhasil diperbarui" : "Berhasil ditambahkan")
@@ -85,13 +86,33 @@ export function DepartemenClient({ departments }: { departments: Department[] })
   }
 
   const getDepartmentTypeLabel = (type: DepartmentType) => {
-    return type === DepartmentType.SEKOLAH ? "Sekolah" : "Yayasan"
+    switch (type) {
+      case DepartmentType.SEKOLAH:
+        return "Sekolah"
+      case DepartmentType.YAYASAN:
+        return "Yayasan"
+      case DepartmentType.SEKURITI:
+        return "Sekuriti"
+      case DepartmentType.MAINTENANCE:
+        return "Maintenance"
+      default:
+        return type
+    }
   }
 
   const getDepartmentTypeBadgeColor = (type: DepartmentType) => {
-    return type === DepartmentType.SEKOLAH
-      ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
-      : "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300"
+    switch (type) {
+      case DepartmentType.SEKOLAH:
+        return "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
+      case DepartmentType.YAYASAN:
+        return "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300"
+      case DepartmentType.SEKURITI:
+        return "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300"
+      case DepartmentType.MAINTENANCE:
+        return "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300"
+      default:
+        return "bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-300"
+    }
   }
 
   return (
@@ -121,6 +142,7 @@ export function DepartemenClient({ departments }: { departments: Department[] })
                 <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Nama</th>
                 <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider hidden md:table-cell">Tipe</th>
                 <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider hidden md:table-cell">Deskripsi</th>
+                <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider hidden md:table-cell">Boleh Mengajar</th>
                 <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Status</th>
                 <th className="px-4 py-2.5"></th>
               </tr>
@@ -128,7 +150,7 @@ export function DepartemenClient({ departments }: { departments: Department[] })
             <tbody className="divide-y divide-border">
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="text-center py-8 text-muted-foreground text-sm">
+                  <td colSpan={6} className="text-center py-8 text-muted-foreground text-sm">
                     Tidak ada data
                   </td>
                 </tr>
@@ -144,6 +166,16 @@ export function DepartemenClient({ departments }: { departments: Department[] })
                     </td>
                     <td className="px-4 py-2.5 text-muted-foreground hidden md:table-cell">
                       {item.description ?? "-"}
+                    </td>
+                    <td className="px-4 py-2.5 hidden md:table-cell">
+                      <Badge
+                        variant="secondary"
+                        className={item.canTeach
+                          ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
+                          : "bg-muted text-muted-foreground"}
+                      >
+                        {item.canTeach ? "Ya" : "Tidak"}
+                      </Badge>
                     </td>
                     <td className="px-4 py-2.5">
                       <Badge
@@ -212,6 +244,8 @@ export function DepartemenClient({ departments }: { departments: Department[] })
                 <SelectContent>
                   <SelectItem value={DepartmentType.SEKOLAH}>Sekolah (TK, SD, SMP, SMA/SMK)</SelectItem>
                   <SelectItem value={DepartmentType.YAYASAN}>Yayasan</SelectItem>
+                  <SelectItem value={DepartmentType.SEKURITI}>Sekuriti</SelectItem>
+                  <SelectItem value={DepartmentType.MAINTENANCE}>Maintenance</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -222,6 +256,14 @@ export function DepartemenClient({ departments }: { departments: Department[] })
                 value={form.description ?? ""}
                 onChange={(e) => setForm({ ...form, description: e.target.value })}
               />
+            </div>
+            <div className="flex items-center gap-3">
+              <Switch
+                id="canTeach"
+                checked={form.canTeach ?? false}
+                onCheckedChange={(v) => setForm({ ...form, canTeach: v })}
+              />
+              <Label htmlFor="canTeach">Boleh Mengajar</Label>
             </div>
             {editItem && (
               <div className="flex items-center gap-3">

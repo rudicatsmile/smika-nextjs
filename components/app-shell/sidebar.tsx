@@ -7,7 +7,7 @@ import { useState, useEffect } from "react"
 import { cn } from "@/lib/utils"
 import {
   LayoutDashboard, Users, Database, Settings, FileText,
-  ChevronLeft, ChevronRight, BookOpen, Building2, Briefcase, Award, DropletIcon, Heart, GraduationCap, History, Users as UsersIcon, ScrollText, CheckCircle, Upload, Handshake, Calendar, BadgeCheck, ClipboardCheck, ChevronDown, Settings as SettingsIcon, BarChart3
+  ChevronLeft, ChevronRight, BookOpen, Building2, Briefcase, Award, DropletIcon, Heart, GraduationCap, History, Users as UsersIcon, ScrollText, CheckCircle, Upload, Handshake, Calendar, BadgeCheck, ClipboardCheck, ChevronDown, Settings as SettingsIcon, BarChart3, Book
 } from "lucide-react"
 import { canViewLogs, canManageMasterData, canManageUsers, canViewEmployeeList, canViewDP3, canViewKesediaan, canManageAppConfig, canViewDocuments } from "@/lib/rbac"
 import { Role } from "@/app/generated/prisma/enums"
@@ -93,6 +93,7 @@ function buildNavItems(role?: Role): NavItem[] {
       children: [
         { href: "/master/departemen", label: "Departemen", icon: Building2 },
         { href: "/master/jabatan", label: "Jabatan", icon: Briefcase },
+        { href: "/master/mata-pelajaran", label: "Mata Pelajaran", icon: Book },
         { href: "/master/status-kepegawaian", label: "Status Kepegawaian", icon: Award },
         { href: "/master/agama", label: "Agama", icon: BookOpen },
         { href: "/master/golongan-darah", label: "Golongan Darah", icon: DropletIcon },

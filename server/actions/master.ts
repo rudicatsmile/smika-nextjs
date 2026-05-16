@@ -16,7 +16,7 @@ async function checkPermission() {
 }
 
 // ── Department ──────────────────────────────────────────────────────────────
-export async function createDepartment(data: { code: string; name: string; description?: string; departmentType: string }) {
+export async function createDepartment(data: { code: string; name: string; description?: string; departmentType: string; canTeach?: boolean }) {
   const session = await checkPermission()
   if (!session) return { error: "Akses ditolak" }
   if (!data.code || !data.name) return { error: "Kode dan nama wajib diisi" }
@@ -31,7 +31,7 @@ export async function createDepartment(data: { code: string; name: string; descr
   }
 }
 
-export async function updateDepartment(id: string, data: { code: string; name: string; description?: string; departmentType?: string; isActive?: boolean }) {
+export async function updateDepartment(id: string, data: { code: string; name: string; description?: string; departmentType?: string; canTeach?: boolean; isActive?: boolean }) {
   const session = await checkPermission()
   if (!session) return { error: "Akses ditolak" }
   try {
@@ -53,8 +53,51 @@ export async function deleteDepartment(id: string) {
     await logActivity({ userId: session.user.id, action: "DELETE", entity: "Department", entityId: id })
     revalidatePath("/master/departemen")
     return { success: true }
-  } catch {
-    return { error: "Gagal menghapus (mungkin masih digunakan)" }
+  } catch (e: any) {
+    return { error: "Gagal menghapus" }
+  }
+}
+
+// ── Subject (Mata Pelajaran) ────────────────────────────────────────────────────
+export async function createSubject(data: { name: string; urutan: number }) {
+  const session = await checkPermission()
+  if (!session) return { error: "Akses ditolak" }
+  if (!data.name || data.urutan === undefined) return { error: "Nama dan urutan wajib diisi" }
+  try {
+    const subject = await prisma.subject.create({ data })
+    await logActivity({ userId: session.user.id, action: "CREATE", entity: "Subject", entityId: subject.id })
+    revalidatePath("/master/mata-pelajaran")
+    return { success: true, id: subject.id }
+  } catch (e: any) {
+    if (e?.code === "P2002") return { error: "Nama mata pelajaran sudah ada" }
+    return { error: "Gagal menyimpan" }
+  }
+}
+
+export async function updateSubject(id: string, data: { name: string; urutan: number; isActive?: boolean }) {
+  const session = await checkPermission()
+  if (!session) return { error: "Akses ditolak" }
+  try {
+    await prisma.subject.update({ where: { id }, data })
+    await logActivity({ userId: session.user.id, action: "UPDATE", entity: "Subject", entityId: id })
+    revalidatePath("/master/mata-pelajaran")
+    return { success: true }
+  } catch (e: any) {
+    if (e?.code === "P2002") return { error: "Nama mata pelajaran sudah ada" }
+    return { error: "Gagal memperbarui" }
+  }
+}
+
+export async function deleteSubject(id: string) {
+  const session = await checkPermission()
+  if (!session) return { error: "Akses ditolak" }
+  try {
+    await prisma.subject.delete({ where: { id } })
+    await logActivity({ userId: session.user.id, action: "DELETE", entity: "Subject", entityId: id })
+    revalidatePath("/master/mata-pelajaran")
+    return { success: true }
+  } catch (e: any) {
+    return { error: "Gagal menghapus" }
   }
 }
 
