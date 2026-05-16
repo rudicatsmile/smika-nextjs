@@ -152,6 +152,7 @@ model Subject {
   isActive  Boolean    @default(true)
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
+  employees Employee[]
 }
 
 model EducationHistory {
@@ -407,6 +408,8 @@ model Employee {
   functionUnit         String?
   taskUnit             String?
   teachingUnit         String?
+  subjectId            String?
+  subject              Subject?              @relation(fields: [subjectId], references: [id])
   joinDate             DateTime?
   highestEducation     String?
   major                String?

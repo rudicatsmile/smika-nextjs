@@ -59,6 +59,7 @@ const schema = z.object({
   graduationYear: z.coerce.number().optional().nullable(),
   departmentId: z.string().optional().nullable(),
   positionId: z.string().optional().nullable(),
+  subjectId: z.string().optional().nullable(),
   employmentStatusId: z.string().optional().nullable(),
   religionId: z.string().optional().nullable(),
   bloodTypeId: z.string().optional().nullable(),
@@ -82,6 +83,7 @@ interface EmployeeFormProps {
   bloodTypes: MasterOption[]
   employmentStatuses: MasterOption[]
   educations: MasterOption[]
+  subjects: MasterOption[]
   mode: "create" | "edit"
 }
 
@@ -100,7 +102,7 @@ function FormField({
 }
 
 export function EmployeeForm({
-  initialData, departments, positions, positionDepartments, religions, bloodTypes, employmentStatuses, educations, mode,
+  initialData, departments, positions, positionDepartments, religions, bloodTypes, employmentStatuses, educations, subjects, mode,
 }: EmployeeFormProps) {
   const router = useRouter()
   const { data: session } = useSession()
@@ -427,20 +429,23 @@ export function EmployeeForm({
               <Card>
                 <CardHeader className="pb-3"><CardTitle className="text-sm">Tugas & Fungsi</CardTitle></CardHeader>
                 <CardContent className="space-y-4">
-                  <FormField label="Unit Posisi">
-                    <Input {...register("positionUnit")} disabled={!canEditEmploymentData} />
-                  </FormField>
-                  <FormField label="Data Posisi">
-                    <Input {...register("positionData")} disabled={!canEditEmploymentData} />
-                  </FormField>
-                  <FormField label="Unit Fungsi">
+                  <FormField label="Fungsi Kerja">
                     <Input {...register("functionUnit")} disabled={!canEditEmploymentData} />
                   </FormField>
-                  <FormField label="Unit Tugas">
+                  <FormField label="Tugas">
                     <Input {...register("taskUnit")} disabled={!canEditEmploymentData} />
                   </FormField>
-                  <FormField label="Unit Mengajar">
-                    <Input {...register("teachingUnit")} disabled={!canEditEmploymentData} />
+                  <FormField label="Mengajar mata pelajaran">
+                    <Select
+                      value={watch("subjectId") ?? ""}
+                      onValueChange={(v) => setValue("subjectId", v || null)}
+                      disabled={!canEditEmploymentData}
+                    >
+                      <SelectTrigger><SelectValue placeholder="Pilih mata pelajaran" /></SelectTrigger>
+                      <SelectContent>
+                        {subjects.map((s) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
                   </FormField>
                 </CardContent>
               </Card>

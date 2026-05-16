@@ -11,7 +11,7 @@ export default async function EditPegawaiPage({
 }) {
   const { id } = await params
 
-  const [employee, departments, positions, positionDepartments, religions, bloodTypes, employmentStatuses, educations] = await Promise.all([
+  const [employee, departments, positions, positionDepartments, religions, bloodTypes, employmentStatuses, educations, subjects] = await Promise.all([
     prisma.employee.findUnique({
       where: { id },
       include: {
@@ -29,6 +29,7 @@ export default async function EditPegawaiPage({
     prisma.bloodType.findMany({ where: { isActive: true } }),
     prisma.employmentStatusMaster.findMany({ where: { isActive: true } }),
     prisma.education.findMany({ where: { isActive: true }, orderBy: { level: "asc" } }),
+    prisma.subject.findMany({ where: { isActive: true }, orderBy: { urutan: "asc" } }),
   ])
 
   if (!employee) notFound()
@@ -44,6 +45,7 @@ export default async function EditPegawaiPage({
       bloodTypes={bloodTypes}
       employmentStatuses={employmentStatuses}
       educations={educations}
+      subjects={subjects}
     />
   )
 }

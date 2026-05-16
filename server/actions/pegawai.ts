@@ -46,6 +46,7 @@ const employeeSchema = z.object({
   graduationYear: z.number().optional().nullable(),
   departmentId: z.string().optional().nullable(),
   positionId: z.string().optional().nullable(),
+  subjectId: z.string().optional().nullable(),
   employmentStatusId: z.string().optional().nullable(),
   religionId: z.string().optional().nullable(),
   bloodTypeId: z.string().optional().nullable(),
