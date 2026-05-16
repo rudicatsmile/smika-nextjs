@@ -3,14 +3,15 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useSession } from "next-auth/react"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { cn } from "@/lib/utils"
 import {
   LayoutDashboard, Users, Database, Settings, FileText,
-  ChevronLeft, ChevronRight, BookOpen, Building2, Briefcase, Award, DropletIcon, Heart, GraduationCap, History, Users as UsersIcon, ScrollText, CheckCircle, Upload, Handshake, Calendar, BadgeCheck, ClipboardCheck, ChevronDown
+  ChevronLeft, ChevronRight, BookOpen, Building2, Briefcase, Award, DropletIcon, Heart, GraduationCap, History, Users as UsersIcon, ScrollText, CheckCircle, Upload, Handshake, Calendar, BadgeCheck, ClipboardCheck, ChevronDown, Settings as SettingsIcon
 } from "lucide-react"
 import { canViewLogs, canManageMasterData, canManageUsers } from "@/lib/rbac"
 import { Role } from "@/app/generated/prisma/enums"
+import { getAppConfiguration } from "@/server/actions/app-configuration"
 
 interface NavItem {
   href: string
@@ -37,6 +38,7 @@ function buildNavItems(role?: Role): NavItem[] {
   ]
 
   if (role && canManageMasterData(role)) {
+    items.push({ href: "/pengaturan", label: "Pengaturan", icon: SettingsIcon })
     items.push({
       href: "/master",
       label: "Master Data",
@@ -76,6 +78,22 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
   const { data: session } = useSession()
   const role = session?.user?.role as Role | undefined
   const navItems = buildNavItems(role)
+  const [appConfig, setAppConfig] = useState<any>(null)
+
+  useEffect(() => {
+    fetchAppConfig()
+  }, [])
+
+  const fetchAppConfig = async () => {
+    const result = await getAppConfiguration()
+    if (result.success) {
+      setAppConfig(result.data)
+    }
+  }
+
+  const appName = appConfig?.appName || "SIMKA"
+  const appOwner = appConfig?.appOwner || "Al Wathoniyah 9"
+  const logoUrl = appConfig?.logoUrl
 
   return (
     <aside
@@ -86,13 +104,17 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
     >
       {/* Logo */}
       <div className={cn("flex items-center border-b border-sidebar-border", collapsed ? "justify-center p-4" : "gap-3 p-5")}>
-        <div className="w-9 h-9 rounded-lg bg-accent/20 border border-accent/30 flex items-center justify-center flex-shrink-0">
-          <span className="text-accent font-bold text-lg">ع</span>
-        </div>
+        {logoUrl ? (
+          <img src={logoUrl} alt="Logo" className="w-9 h-9 rounded-lg object-cover flex-shrink-0" />
+        ) : (
+          <div className="w-9 h-9 rounded-lg bg-accent/20 border border-accent/30 flex items-center justify-center flex-shrink-0">
+            <span className="text-accent font-bold text-lg">ع</span>
+          </div>
+        )}
         {!collapsed && (
           <div className="overflow-hidden">
-            <p className="font-bold text-sm leading-tight text-sidebar-foreground">SIMKA</p>
-            <p className="text-sidebar-foreground/60 text-xs leading-tight truncate">Al Wathoniyah 9</p>
+            <p className="font-bold text-sm leading-tight text-sidebar-foreground">{appName}</p>
+            <p className="text-sidebar-foreground/60 text-xs leading-tight truncate">{appOwner}</p>
           </div>
         )}
       </div>
@@ -200,6 +222,22 @@ export function MobileSidebar({ open, onClose }: { open: boolean; onClose: () =>
   const { data: session } = useSession()
   const role = session?.user?.role as Role | undefined
   const navItems = buildNavItems(role)
+  const [appConfig, setAppConfig] = useState<any>(null)
+
+  useEffect(() => {
+    fetchAppConfig()
+  }, [])
+
+  const fetchAppConfig = async () => {
+    const result = await getAppConfiguration()
+    if (result.success) {
+      setAppConfig(result.data)
+    }
+  }
+
+  const appName = appConfig?.appName || "SIMKA"
+  const appOwner = appConfig?.appOwner || "Al Wathoniyah 9"
+  const logoUrl = appConfig?.logoUrl
 
   return (
     <>
@@ -211,12 +249,16 @@ export function MobileSidebar({ open, onClose }: { open: boolean; onClose: () =>
         open ? "translate-x-0" : "-translate-x-full"
       )}>
         <div className="flex items-center gap-3 p-5 border-b border-sidebar-border">
-          <div className="w-9 h-9 rounded-lg bg-accent/20 border border-accent/30 flex items-center justify-center">
-            <span className="text-accent font-bold text-lg">ع</span>
-          </div>
+          {logoUrl ? (
+            <img src={logoUrl} alt="Logo" className="w-9 h-9 rounded-lg object-cover flex-shrink-0" />
+          ) : (
+            <div className="w-9 h-9 rounded-lg bg-accent/20 border border-accent/30 flex items-center justify-center">
+              <span className="text-accent font-bold text-lg">ع</span>
+            </div>
+          )}
           <div>
-            <p className="font-bold text-sm text-sidebar-foreground">SIMKA</p>
-            <p className="text-sidebar-foreground/60 text-xs">Al Wathoniyah 9</p>
+            <p className="font-bold text-sm text-sidebar-foreground">{appName}</p>
+            <p className="text-sidebar-foreground/60 text-xs">{appOwner}</p>
           </div>
         </div>
         <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-0.5">

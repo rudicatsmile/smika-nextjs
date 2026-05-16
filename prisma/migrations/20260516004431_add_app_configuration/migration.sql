@@ -1,0 +1,27 @@
+-- CreateTable
+CREATE TABLE "AppConfiguration" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "appName" TEXT NOT NULL DEFAULT 'SIMKA',
+    "appOwner" TEXT,
+    "logoUrl" TEXT,
+    "faviconUrl" TEXT,
+    "address" TEXT,
+    "phone" TEXT,
+    "email" TEXT,
+    "website" TEXT,
+    "facebookUrl" TEXT,
+    "instagramUrl" TEXT,
+    "youtubeUrl" TEXT,
+    "primaryColor" TEXT NOT NULL DEFAULT '#0f172a',
+    "secondaryColor" TEXT NOT NULL DEFAULT '#3b82f6',
+    "motto" TEXT,
+    "vision" TEXT,
+    "mission" TEXT,
+    "copyright" TEXT,
+    "footerText" TEXT,
+    "activeYearId" TEXT,
+    "activeSemester" INTEGER,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME NOT NULL,
+    CONSTRAINT "AppConfiguration_activeYearId_fkey" FOREIGN KEY ("activeYearId") REFERENCES "Year" ("id") ON DELETE SET NULL ON UPDATE CASCADE
+);

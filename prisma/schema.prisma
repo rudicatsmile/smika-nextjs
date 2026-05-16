@@ -146,13 +146,14 @@ model Occupation {
 }
 
 model Year {
-  id        String     @id @default(cuid())
-  name      String     @unique
-  order     Int        @default(0)
-  isActive  Boolean    @default(true)
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
-  dp3       DP3[]
+  id                 String             @id @default(cuid())
+  name               String             @unique
+  order              Int                @default(0)
+  isActive           Boolean            @default(true)
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+  dp3                DP3[]
+  appConfiguration   AppConfiguration[]
 }
 
 model StatusDP3 {
@@ -432,4 +433,31 @@ model ActivityLog {
   entityId  String?
   meta      String?
   createdAt DateTime @default(now())
+}
+
+model AppConfiguration {
+  id                 String   @id @default(cuid())
+  appName            String   @default("SIMKA")
+  appOwner           String?
+  logoUrl            String?
+  faviconUrl         String?
+  address            String?
+  phone              String?
+  email              String?
+  website            String?
+  facebookUrl        String?
+  instagramUrl       String?
+  youtubeUrl         String?
+  primaryColor       String   @default("#0f172a")
+  secondaryColor     String   @default("#3b82f6")
+  motto              String?
+  vision             String?
+  mission            String?
+  copyright          String?
+  footerText         String?
+  activeYearId       String?
+  activeYear         Year?    @relation(fields: [activeYearId], references: [id])
+  activeSemester     Int?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
 }
