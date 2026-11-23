@@ -1,24 +1,17 @@
 import { PrismaClient } from "@/app/generated/prisma/client"
-import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3"
-import path from "path"
+import { PrismaMariaDb } from "@prisma/adapter-mariadb"
 
 function createPrismaClient() {
-  const dbUrl = process.env.DATABASE_URL ?? "file:./prisma/dev.db"
-  const filePath = dbUrl.replace(/^file:/, "")
-  const resolvedPath = path.isAbsolute(filePath)
-    ? filePath
-    : path.resolve(process.cwd(), filePath)
-  const adapter = new PrismaBetterSqlite3({ url: resolvedPath })
+  const dbUrl = process.env.DATABASE_URL ?? "mysql://root:@localhost:3306/simka9"
+  const adapter = new PrismaMariaDb(dbUrl)
   return new PrismaClient({ adapter })
 }
 
-// Disable global cache in development to ensure fresh instance after schema changes
-const prisma = process.env.NODE_ENV === "production"
-  ? (globalThis as any).prisma ?? createPrismaClient()
-  : createPrismaClient()
+const globalForPrisma = globalThis as unknown as { prisma: PrismaClient | undefined }
 
-if (process.env.NODE_ENV === "production") {
-  (globalThis as any).prisma = prisma
+export const prisma = globalForPrisma.prisma ?? createPrismaClient()
+
+if (process.env.NODE_ENV !== "production") {
+  globalForPrisma.prisma = prisma
 }
 
-export { prisma }

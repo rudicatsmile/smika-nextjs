@@ -1,14 +1,9 @@
 import { PrismaClient } from "../app/generated/prisma/client"
-import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3"
+import { PrismaMariaDb } from "@prisma/adapter-mariadb"
 import bcrypt from "bcryptjs"
-import path from "path"
 
-const dbUrl = process.env["DATABASE_URL"] ?? "file:./dev.db"
-const filePath = dbUrl.replace(/^file:/, "")
-const resolvedDb = path.isAbsolute(filePath)
-  ? filePath
-  : path.resolve(process.cwd(), filePath)
-const adapter = new PrismaBetterSqlite3({ url: resolvedDb })
+const dbUrl = process.env["DATABASE_URL"] ?? "mysql://root:@localhost:3306/simka9"
+const adapter = new PrismaMariaDb(dbUrl)
 const prisma = new PrismaClient({ adapter })
 
 async function main() {
