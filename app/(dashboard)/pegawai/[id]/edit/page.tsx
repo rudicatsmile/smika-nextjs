@@ -32,7 +32,7 @@ export default async function EditPegawaiPage({
     prisma.religion.findMany({ where: { isActive: true } }),
     prisma.bloodType.findMany({ where: { isActive: true } }),
     prisma.employmentStatusMaster.findMany({ where: { isActive: true } }),
-    prisma.education.findMany({ where: { isActive: true }, orderBy: { level: "asc" } }),
+    prisma.education.findMany({ where: { isActive: true }, orderBy: { order: "asc" } }),
     prisma.subject.findMany({ where: { isActive: true }, orderBy: { urutan: "asc" } }),
   ])
 

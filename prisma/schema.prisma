@@ -137,6 +137,7 @@ model Education {
   id               String             @id @default(cuid())
   name             String             @unique
   level            String
+  order            Int                @default(0)
   isActive         Boolean            @default(true)
   createdAt        DateTime           @default(now())
   updatedAt        DateTime           @updatedAt

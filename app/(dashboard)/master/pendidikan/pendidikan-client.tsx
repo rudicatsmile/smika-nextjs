@@ -22,6 +22,7 @@ interface EducationItem {
   id: string
   name: string
   level: string
+  order: number
   isActive: boolean
   createdAt: Date
   updatedAt: Date
@@ -34,11 +35,16 @@ export function PendidikanClient({ initialData }: { initialData: any[] }) {
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editItem, setEditItem] = useState<EducationItem | null>(null)
   const [deleteId, setDeleteId] = useState<string | null>(null)
-  const [form, setForm] = useState<{ name: string; level: string }>({ name: "", level: "" })
+  const [form, setForm] = useState<{ name: string; level: string; order: string }>({
+    name: "",
+    level: "",
+    order: "1",
+  })
   const [isPending, setIsPending] = useState(false)
 
   useEffect(() => {
-    setData(initialData as EducationItem[])
+    const sorted = [...(initialData as EducationItem[])].sort((a, b) => (a.order || 0) - (b.order || 0))
+    setData(sorted)
     setMounted(true)
   }, [initialData])
 
@@ -46,7 +52,8 @@ export function PendidikanClient({ initialData }: { initialData: any[] }) {
 
   const filtered = data.filter((i) =>
     i.name.toLowerCase().includes(search.toLowerCase()) ||
-    i.level.toLowerCase().includes(search.toLowerCase())
+    i.level.toLowerCase().includes(search.toLowerCase()) ||
+    (i.order?.toString() || "").includes(search)
   )
 
   const handleSubmit = async () => {
@@ -54,12 +61,23 @@ export function PendidikanClient({ initialData }: { initialData: any[] }) {
       toast.error("Nama dan level wajib diisi")
       return
     }
+    const orderNum = parseInt(form.order) || 0
     setIsPending(true)
     try {
       if (editItem) {
-        const result = await updateEducation(editItem.id, { name: form.name, level: form.level })
+        const result = await updateEducation(editItem.id, {
+          name: form.name,
+          level: form.level,
+          order: orderNum,
+        })
         if (result.success) {
-          setData(data.map((item) => (item.id === editItem.id ? { ...item, name: form.name, level: form.level } : item)))
+          setData(
+            data
+              .map((item) =>
+                item.id === editItem.id ? { ...item, name: form.name, level: form.level, order: orderNum } : item
+              )
+              .sort((a, b) => (a.order || 0) - (b.order || 0))
+          )
           toast.success("Data berhasil diperbarui")
           setDialogOpen(false)
           setEditItem(null)
@@ -67,10 +85,22 @@ export function PendidikanClient({ initialData }: { initialData: any[] }) {
           toast.error(result.error || "Gagal memperbarui")
         }
       } else {
-        const result = await createEducation({ name: form.name, level: form.level })
+        const result = await createEducation({
+          name: form.name,
+          level: form.level,
+          order: orderNum,
+        })
         if (result.success) {
-          const newItem = { id: result.id, name: form.name, level: form.level, isActive: true, createdAt: new Date(), updatedAt: new Date() }
-          setData([...data, newItem])
+          const newItem: EducationItem = {
+            id: result.id,
+            name: form.name,
+            level: form.level,
+            order: orderNum,
+            isActive: true,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          }
+          setData([...data, newItem].sort((a, b) => (a.order || 0) - (b.order || 0)))
           toast.success("Data berhasil ditambahkan")
           setDialogOpen(false)
         } else {
@@ -104,7 +134,12 @@ export function PendidikanClient({ initialData }: { initialData: any[] }) {
     if (!item) return
     setIsPending(true)
     try {
-      const result = await updateEducation(id, { name: item.name, level: item.level, isActive })
+      const result = await updateEducation(id, {
+        name: item.name,
+        level: item.level,
+        order: item.order,
+        isActive,
+      })
       if (result.success) {
         setData(data.map((i) => (i.id === id ? { ...i, isActive } : i)))
       } else {
@@ -118,10 +153,19 @@ export function PendidikanClient({ initialData }: { initialData: any[] }) {
   const openDialog = (item?: EducationItem) => {
     if (item) {
       setEditItem(item)
-      setForm({ name: item.name, level: item.level })
+      setForm({
+        name: item.name,
+        level: item.level,
+        order: (item.order ?? 0).toString(),
+      })
     } else {
       setEditItem(null)
-      setForm({ name: "", level: "" })
+      const nextOrder = data.length > 0 ? Math.max(...data.map((d) => d.order || 0)) + 1 : 1
+      setForm({
+        name: "",
+        level: "",
+        order: nextOrder.toString(),
+      })
     }
     setDialogOpen(true)
   }
@@ -153,6 +197,7 @@ export function PendidikanClient({ initialData }: { initialData: any[] }) {
           <table className="w-full">
             <thead>
               <tr className="border-b bg-muted/50">
+                <th className="text-center p-3 font-medium w-20">Urutan</th>
                 <th className="text-left p-3 font-medium">Nama</th>
                 <th className="text-left p-3 font-medium">Level</th>
                 <th className="text-center p-3 font-medium">Status</th>
@@ -162,7 +207,12 @@ export function PendidikanClient({ initialData }: { initialData: any[] }) {
             <tbody>
               {filtered.map((item) => (
                 <tr key={item.id} className="border-b hover:bg-muted/30">
-                  <td className="p-3">{item.name}</td>
+                  <td className="p-3 text-center">
+                    <span className="inline-flex items-center justify-center px-2 py-0.5 rounded-md font-mono text-xs font-semibold bg-muted text-muted-foreground border">
+                      #{item.order}
+                    </span>
+                  </td>
+                  <td className="p-3 font-medium">{item.name}</td>
                   <td className="p-3">{item.level}</td>
                   <td className="p-3 text-center">
                     <Switch
@@ -185,7 +235,7 @@ export function PendidikanClient({ initialData }: { initialData: any[] }) {
               ))}
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={4} className="p-8 text-center text-muted-foreground">
+                  <td colSpan={5} className="p-8 text-center text-muted-foreground">
                     Tidak ada data ditemukan
                   </td>
                 </tr>
@@ -201,6 +251,20 @@ export function PendidikanClient({ initialData }: { initialData: any[] }) {
             <DialogTitle>{editItem ? "Edit Pendidikan" : "Tambah Pendidikan"}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="order">Urutan Tampilan</Label>
+              <Input
+                id="order"
+                type="number"
+                min="1"
+                value={form.order}
+                onChange={(e) => setForm({ ...form, order: e.target.value })}
+                placeholder="1, 2, 3..."
+              />
+              <p className="text-[11px] text-muted-foreground">
+                Menentukan urutan prioritas kemunculan data di tabel dan pilihan dropdown
+              </p>
+            </div>
             <div className="space-y-2">
               <Label htmlFor="name">Nama Pendidikan</Label>
               <Input

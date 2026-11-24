@@ -299,12 +299,18 @@ export async function deleteBloodType(id: string) {
 }
 
 // ── Education ────────────────────────────────────────────────────────────────
-export async function createEducation(data: { name: string; level: string }) {
+export async function createEducation(data: { name: string; level: string; order?: number }) {
   const session = await checkPermission()
   if (!session) return { error: "Akses ditolak" }
   if (!data.name || !data.level) return { error: "Nama dan level wajib diisi" }
   try {
-    const edu = await prisma.education.create({ data })
+    const edu = await prisma.education.create({
+      data: {
+        name: data.name,
+        level: data.level,
+        order: data.order ?? 0,
+      },
+    })
     await logActivity({ userId: session.user.id, action: "CREATE", entity: "Education", entityId: edu.id })
     revalidatePath("/master/pendidikan")
     return { success: true, id: edu.id }
@@ -314,11 +320,22 @@ export async function createEducation(data: { name: string; level: string }) {
   }
 }
 
-export async function updateEducation(id: string, data: { name: string; level: string; isActive?: boolean }) {
+export async function updateEducation(
+  id: string,
+  data: { name: string; level: string; order?: number; isActive?: boolean }
+) {
   const session = await checkPermission()
   if (!session) return { error: "Akses ditolak" }
   try {
-    await prisma.education.update({ where: { id }, data })
+    await prisma.education.update({
+      where: { id },
+      data: {
+        name: data.name,
+        level: data.level,
+        ...(data.order !== undefined ? { order: data.order } : {}),
+        ...(data.isActive !== undefined ? { isActive: data.isActive } : {}),
+      },
+    })
     await logActivity({ userId: session.user.id, action: "UPDATE", entity: "Education", entityId: id })
     revalidatePath("/master/pendidikan")
     return { success: true }

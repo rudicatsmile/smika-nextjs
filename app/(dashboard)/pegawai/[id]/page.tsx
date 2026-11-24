@@ -28,7 +28,7 @@ export default async function EmployeeDetailPage({
         history: { orderBy: { date: "desc" } },
       },
     }),
-    prisma.education.findMany({ where: { isActive: true }, orderBy: { level: "asc" } }),
+    prisma.education.findMany({ where: { isActive: true }, orderBy: { order: "asc" } }),
     prisma.educationHistory.findMany({
       where: { employeeId: id },
       include: { education: true },
