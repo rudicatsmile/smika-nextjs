@@ -127,7 +127,7 @@ export function canUploadDocuments(role: Role): boolean {
 }
 
 export function canDeleteDocuments(role: Role): boolean {
-  return role === "SUPER_ADMIN" || role === "HR"
+  return role === "SUPER_ADMIN" || role === "HR" || role === "PEGAWAI"
 }
 
 // Sensitive Data Permissions

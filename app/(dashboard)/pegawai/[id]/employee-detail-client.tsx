@@ -8,7 +8,7 @@ import {
   Phone, Mail, Calendar, Users as UsersIcon, Award, ScrollText, CheckCircle,
   Building2 as BuildingIcon, Heart as HeartIcon, Users as UsersOrgIcon,
   ChevronLeft, ChevronRight, Copy, Check, ExternalLink, ShieldCheck,
-  CreditCard, Sparkles
+  CreditCard, Sparkles, KeyRound
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -207,7 +207,7 @@ export function EmployeeDetailClient({
   return (
     <div className="space-y-6 max-w-5xl mx-auto pb-10">
       {/* Top Navigation & Action */}
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex items-center justify-between gap-3 flex-wrap">
         <Button variant="ghost" size="sm" asChild className="gap-2 text-muted-foreground hover:text-foreground">
           <Link href="/pegawai">
             <ArrowLeft className="h-4 w-4" />
@@ -216,14 +216,25 @@ export function EmployeeDetailClient({
           </Link>
         </Button>
 
-        {role && canEditEmployee(role) && (
-          <Button asChild size="sm" className="gap-2 shadow-sm">
-            <Link href={`/pegawai/${employee.id}/edit`}>
-              <Edit className="h-4 w-4" />
-              <span>Edit Profil</span>
-            </Link>
-          </Button>
-        )}
+        <div className="flex items-center gap-2">
+          {session?.user?.employeeId === employee.id && (
+            <Button variant="outline" size="sm" asChild className="gap-1.5 text-xs rounded-xl h-8 border-primary/20 text-primary hover:bg-primary/10">
+              <Link href="/ganti-password">
+                <KeyRound className="h-3.5 w-3.5" />
+                <span>Ganti Password</span>
+              </Link>
+            </Button>
+          )}
+
+          {role && canEditEmployee(role) && (
+            <Button asChild size="sm" className="gap-2 shadow-sm rounded-xl h-8">
+              <Link href={`/pegawai/${employee.id}/edit`}>
+                <Edit className="h-3.5 w-3.5" />
+                <span>Edit Profil</span>
+              </Link>
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Hero Profile Card */}

@@ -2,7 +2,7 @@
 
 import { useSession, signOut } from "next-auth/react"
 import { useTheme } from "next-themes"
-import { Bell, Menu, Moon, Sun, LogOut, User, ChevronDown } from "lucide-react"
+import { Bell, Menu, Moon, Sun, LogOut, User, ChevronDown, KeyRound } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import {
@@ -93,6 +93,12 @@ export function Topbar({ onMenuClick }: TopbarProps) {
                   </Link>
                 </DropdownMenuItem>
               )}
+              <DropdownMenuItem asChild>
+                <Link href="/ganti-password">
+                  <KeyRound className="mr-2 h-4 w-4" />
+                  Ganti Password
+                </Link>
+              </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuItem

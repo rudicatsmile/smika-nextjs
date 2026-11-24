@@ -7,6 +7,7 @@ import { canManageUsers } from "@/lib/rbac"
 import { Role } from "@/app/generated/prisma/enums"
 import { revalidatePath } from "next/cache"
 import bcrypt from "bcryptjs"
+import crypto from "crypto"
 import { logActivity } from "@/lib/activity-log"
 
 async function checkAdmin() {
@@ -82,3 +83,88 @@ export async function deleteUser(id: string) {
   revalidatePath("/akun")
   return { success: true }
 }
+
+export async function changePassword(data: {
+  currentPassword: string
+  newPassword: string
+  confirmPassword: string
+}) {
+  const session = await getServerSession(authOptions)
+  if (!session?.user?.id) {
+    return { error: "Anda harus login terlebih dahulu" }
+  }
+
+  const { currentPassword, newPassword, confirmPassword } = data
+
+  if (!currentPassword || !newPassword || !confirmPassword) {
+    return { error: "Semua kolom password wajib diisi" }
+  }
+
+  if (newPassword.length < 8) {
+    return { error: "Password baru minimal 8 karakter" }
+  }
+
+  if (newPassword !== confirmPassword) {
+    return { error: "Konfirmasi password baru tidak cocok" }
+  }
+
+  if (currentPassword === newPassword) {
+    return { error: "Password baru tidak boleh sama dengan password lama" }
+  }
+
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+    })
+
+    if (!user) {
+      return { error: "Data pengguna tidak ditemukan" }
+    }
+
+    // Verifikasi password saat ini (dukung Bcrypt, SHA-1, dan MD5 legacy)
+    let isCurrentValid = false
+
+    if (
+      user.passwordHash.startsWith("$2a$") ||
+      user.passwordHash.startsWith("$2b$") ||
+      user.passwordHash.startsWith("$2y$")
+    ) {
+      isCurrentValid = await bcrypt.compare(currentPassword, user.passwordHash)
+    } else {
+      const sha1Hash = crypto.createHash("sha1").update(currentPassword).digest("hex")
+      if (sha1Hash.toLowerCase() === user.passwordHash.toLowerCase()) {
+        isCurrentValid = true
+      } else {
+        const md5Hash = crypto.createHash("md5").update(currentPassword).digest("hex")
+        if (md5Hash.toLowerCase() === user.passwordHash.toLowerCase()) {
+          isCurrentValid = true
+        }
+      }
+    }
+
+    if (!isCurrentValid) {
+      return { error: "Password lama tidak sesuai" }
+    }
+
+    // Hash password baru menggunakan bcrypt dengan salt rounds 12
+    const passwordHash = await bcrypt.hash(newPassword, 12)
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { passwordHash },
+    })
+
+    await logActivity({
+      userId: user.id,
+      action: "UPDATE",
+      entity: "UserPassword",
+      entityId: user.id,
+    })
+
+    return { success: true, message: "Password berhasil diperbarui" }
+  } catch (error: any) {
+    console.error("Error changing password:", error)
+    return { error: "Terjadi kesalahan saat memperbarui password" }
+  }
+}
+

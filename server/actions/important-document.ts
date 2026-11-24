@@ -231,6 +231,8 @@ export async function getEmployeesWithDocumentStatus(filters?: {
             id: true,
             documentType: true,
             fileUrl: true,
+            uploadedAt: true,
+            updatedAt: true,
           },
         },
       },
