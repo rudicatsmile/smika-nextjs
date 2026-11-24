@@ -12,7 +12,7 @@ Dokumen ini berisi daftar akun dan kredensial pengguna hasil migrasi ke sistem *
 | **Nama** | Super admin |
 | **Role** | `SUPER_ADMIN` |
 | **NIP / Identifier** | `admin*U^TYu5` |
-| **Email** | *(tidak diatur / kosong)* |
+| **Email** | `admin@alwathoniyah9.sch.id` |
 | **Password** | `AdminSimka2026!` |
 | **Hak Akses** | Akses penuh seluruh modul master, konfigurasi aplikasi, user management, DP3, dan kepegawaian |
 

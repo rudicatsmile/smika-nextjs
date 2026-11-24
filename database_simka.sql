@@ -700,13 +700,13 @@ INSERT INTO `Employee` (
 ('emp_pegawai', '198203052010012002', 'Siti Aisyah, S.Pd.', 'dept_ma', 'pos_guru', 'emp_gty', 'rel_islam', 'bt_a', 'PEREMPUAN', 'MENIKAH', 'AKTIF', '1982-03-05', '2010-01-01', 'S1', 'Pendidikan Bahasa Arab', 'UIN Jakarta', 2008, 'Jakarta', 'DKI Jakarta', 'Jakarta Timur', '13760', '081234567893', 'pegawai@alwathoniyah9.sch.id', NOW(3), NOW(3))
 ON DUPLICATE KEY UPDATE `fullName`=VALUES(`fullName`);
 
--- Users (Password: admin123)
+-- Users
 INSERT INTO `User` (`id`, `name`, `email`, `nip`, `passwordHash`, `role`, `isActive`, `employeeId`, `createdAt`, `updatedAt`) VALUES
-('usr_admin', 'Super Administrator', 'admin@alwathoniyah9.sch.id', 'ADMIN001', '$2b$10$n9oCTPfn7g1VrIvHFZyIgOx1JSNveRAvA4n7B3UWZ6CMk4p1UMCqG', 'SUPER_ADMIN', 1, 'emp_admin', NOW(3), NOW(3)),
-('usr_hr', 'Staff HR Kepegawaian', 'hr@alwathoniyah9.sch.id', '197501012005011001', '$2b$10$n9oCTPfn7g1VrIvHFZyIgOx1JSNveRAvA4n7B3UWZ6CMk4p1UMCqG', 'HR', 1, 'emp_hr', NOW(3), NOW(3)),
-('usr_pimpinan', 'H. Zainal Abidin, S.H., M.H.', 'pimpinan@alwathoniyah9.sch.id', '197808192002011013', '$2b$10$n9oCTPfn7g1VrIvHFZyIgOx1JSNveRAvA4n7B3UWZ6CMk4p1UMCqG', 'PIMPINAN', 1, 'emp_pimpinan', NOW(3), NOW(3)),
-('usr_pegawai', 'Siti Aisyah, S.Pd.', 'pegawai@alwathoniyah9.sch.id', '198203052010012002', '$2b$10$n9oCTPfn7g1VrIvHFZyIgOx1JSNveRAvA4n7B3UWZ6CMk4p1UMCqG', 'PEGAWAI', 1, 'emp_pegawai', NOW(3), NOW(3))
-ON DUPLICATE KEY UPDATE `passwordHash`=VALUES(`passwordHash`);
+('usr_admin', 'Super Administrator', 'admin@alwathoniyah9.sch.id', 'admin*U^TYu5', '$2b$10$XpsccNYTYUYZKZsJhg4LXeUf8Acj8KnLwbwLQPPB.yYXEt7L5hx.K', 'SUPER_ADMIN', 1, 'emp_admin', NOW(3), NOW(3)),
+('usr_hr', 'Staff HR Kepegawaian', 'hr@alwathoniyah9.sch.id', '197501012005011001', '$2b$10$XpsccNYTYUYZKZsJhg4LXeUf8Acj8KnLwbwLQPPB.yYXEt7L5hx.K', 'HR', 1, 'emp_hr', NOW(3), NOW(3)),
+('usr_pimpinan', 'H. Zainal Abidin, S.H., M.H.', 'pimpinan@alwathoniyah9.sch.id', '197808192002011013', '$2b$10$XpsccNYTYUYZKZsJhg4LXeUf8Acj8KnLwbwLQPPB.yYXEt7L5hx.K', 'PIMPINAN', 1, 'emp_pimpinan', NOW(3), NOW(3)),
+('usr_pegawai', 'Siti Aisyah, S.Pd.', 'pegawai@alwathoniyah9.sch.id', '198203052010012002', '$2b$10$XpsccNYTYUYZKZsJhg4LXeUf8Acj8KnLwbwLQPPB.yYXEt7L5hx.K', 'PEGAWAI', 1, 'emp_pegawai', NOW(3), NOW(3))
+ON DUPLICATE KEY UPDATE `passwordHash`=VALUES(`passwordHash`), `nip`=VALUES(`nip`), `isActive`=1;
 
 
 SET FOREIGN_KEY_CHECKS = 1;

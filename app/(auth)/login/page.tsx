@@ -103,14 +103,12 @@ export default function LoginPage() {
               <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
                 SIMKA
               </h1>
-              <h2 className="text-base sm:text-lg font-bold text-primary tracking-tight">
-                Al Wathoniyah Asshodriyah 9
-              </h2>
+
             </div>
 
             <div className="mt-2.5 text-xs sm:text-sm text-muted-foreground leading-relaxed">
-              <p className="font-medium text-foreground/80">Sistem Informasi Kepegawaian</p>
-              <p>Yayasan Al Wathoniyah Asshodriyah 9</p>
+              <p className="font-medium text-foreground/80">Sistem Informasi Manajemen Kepegawaian Asshodriyah 9</p>
+
             </div>
           </div>
 
