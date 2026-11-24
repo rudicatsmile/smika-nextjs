@@ -34,7 +34,9 @@ declare module "next-auth/jwt" {
 }
 
 export const authOptions: NextAuthOptions = {
+  secret: process.env.NEXTAUTH_SECRET || "simka9-development-secret-key-super-secure-token-2026",
   session: { strategy: "jwt" },
+  debug: process.env.NODE_ENV === "development",
   pages: {
     signIn: "/login",
     error: "/login",
@@ -49,31 +51,36 @@ export const authOptions: NextAuthOptions = {
       async authorize(credentials) {
         if (!credentials?.identifier || !credentials?.password) return null
 
-        const user = await prisma.user.findFirst({
-          where: {
-            OR: [
-              { email: credentials.identifier },
-              { nip: credentials.identifier },
-            ],
-            isActive: true,
-          },
-        })
+        try {
+          const user = await prisma.user.findFirst({
+            where: {
+              OR: [
+                { email: credentials.identifier },
+                { nip: credentials.identifier },
+              ],
+              isActive: true,
+            },
+          })
 
-        if (!user) return null
+          if (!user) return null
 
-        const isValid = await bcrypt.compare(
-          credentials.password,
-          user.passwordHash
-        )
-        if (!isValid) return null
+          const isValid = await bcrypt.compare(
+            credentials.password,
+            user.passwordHash
+          )
+          if (!isValid) return null
 
-        return {
-          id: user.id,
-          name: user.name,
-          email: user.email,
-          role: user.role,
-          nip: user.nip,
-          employeeId: user.employeeId,
+          return {
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            role: user.role,
+            nip: user.nip,
+            employeeId: user.employeeId,
+          }
+        } catch (error) {
+          console.error("Database connection error in authorize():", error)
+          return null
         }
       },
     }),

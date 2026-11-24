@@ -3,14 +3,14 @@
 import { useState } from "react"
 import { signIn } from "next-auth/react"
 import { useRouter } from "next/navigation"
-import { Eye, EyeOff, Loader2, BookOpen, Users, Shield } from "lucide-react"
+import { Eye, EyeOff, Loader2, Moon, Sun } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { toast } from "sonner"
 import Link from "next/link"
+import Image from "next/image"
 import { useTheme } from "next-themes"
-import { Moon, Sun } from "lucide-react"
 
 export default function LoginPage() {
   const router = useRouter()
@@ -34,8 +34,6 @@ export default function LoginPage() {
         password,
         redirect: false,
       })
-
-      console.log("Login result:", result)
 
       if (result?.error) {
         toast.error("Login Gagal", {
@@ -70,104 +68,58 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex bg-background">
-      {/* Left Panel */}
-      <div className="hidden lg:flex lg:w-1/2 bg-sidebar flex-col justify-between p-12 relative overflow-hidden">
-        {/* Geometric Islamic Pattern */}
-        <div className="absolute inset-0 opacity-10">
-          <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
-            <defs>
-              <pattern id="islamic" x="0" y="0" width="80" height="80" patternUnits="userSpaceOnUse">
-                <polygon points="40,0 80,20 80,60 40,80 0,60 0,20" fill="none" stroke="white" strokeWidth="1"/>
-                <circle cx="40" cy="40" r="15" fill="none" stroke="white" strokeWidth="1"/>
-                <line x1="40" y1="0" x2="40" y2="80" stroke="white" strokeWidth="0.5"/>
-                <line x1="0" y1="40" x2="80" y2="40" stroke="white" strokeWidth="0.5"/>
-              </pattern>
-            </defs>
-            <rect width="100%" height="100%" fill="url(#islamic)"/>
-          </svg>
-        </div>
-
-        <div className="relative z-10">
-          <div className="flex items-center gap-3 mb-8">
-            <div className="w-12 h-12 rounded-xl bg-accent/20 flex items-center justify-center border border-accent/30">
-              <span className="text-accent text-2xl font-bold">ع</span>
-            </div>
-            <div>
-              <p className="text-sidebar-foreground/60 text-xs uppercase tracking-widest">Yayasan</p>
-              <p className="text-sidebar-foreground font-bold text-lg leading-tight">Al Wathoniyah 9</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="relative z-10 space-y-6">
-          <div>
-            <h1 className="text-4xl font-bold text-sidebar-foreground leading-tight">
-              SIMKA
-            </h1>
-            <h2 className="text-xl text-sidebar-foreground/80 mt-1">
-              Al Wathoniyah Asshodriyah 9
-            </h2>
-            <p className="text-sidebar-foreground/60 mt-3 text-sm leading-relaxed">
-              Sistem Informasi Kepegawaian<br />
-              Yayasan Al Wathoniyah Asshodriyah 9
-            </p>
-          </div>
-
-          <div className="grid grid-cols-3 gap-4">
-            {[
-              { icon: Users, label: "Data Pegawai", desc: "Kelola seluruh data" },
-              { icon: BookOpen, label: "Multi Unit", desc: "TK, MI, MTs, MA" },
-              { icon: Shield, label: "Aman & Terpercaya", desc: "Role-based access" },
-            ].map(({ icon: Icon, label, desc }) => (
-              <div key={label} className="bg-sidebar-accent/50 rounded-xl p-4 border border-sidebar-border">
-                <Icon className="w-5 h-5 text-accent mb-2" />
-                <p className="text-sidebar-foreground text-xs font-semibold">{label}</p>
-                <p className="text-sidebar-foreground/50 text-xs">{desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <p className="relative z-10 text-sidebar-foreground/40 text-xs">
-          © {new Date().getFullYear()} Yayasan Al Wathoniyah Asshodriyah 9
-        </p>
+    <div className="min-h-screen flex flex-col justify-between items-center bg-background p-4 sm:p-6 lg:p-8 relative">
+      {/* Theme Toggle Button */}
+      <div className="w-full flex justify-end max-w-5xl">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="rounded-full h-9 w-9 text-muted-foreground hover:text-foreground"
+          onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+          aria-label="Toggle theme"
+        >
+          <Sun className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+          <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+        </Button>
       </div>
 
-      {/* Right Panel */}
-      <div className="flex-1 flex items-center justify-center p-8">
-        <div className="w-full max-w-md">
-          {/* Theme Toggle */}
-          <div className="flex justify-end mb-6">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-            >
-              <Sun className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-              <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
-            </Button>
-          </div>
-
-          {/* Mobile Logo */}
-          <div className="lg:hidden flex items-center gap-3 mb-8">
-            <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center">
-              <span className="text-primary-foreground text-xl font-bold">ع</span>
+      {/* Main Card Container */}
+      <div className="w-full max-w-[420px] my-auto">
+        <div className="bg-card text-card-foreground border border-border/70 shadow-lg shadow-black/5 dark:shadow-none rounded-2xl p-7 sm:p-9 transition-all">
+          {/* Header & Logo */}
+          <div className="flex flex-col items-center text-center mb-8">
+            <div className="relative w-20 h-20 sm:w-24 sm:h-24 mb-5 transition-transform hover:scale-105 duration-200">
+              <Image
+                src="/icon.png"
+                alt="Logo Yayasan Al Wathoniyah Asshodriyah 9"
+                fill
+                sizes="96px"
+                className="object-contain"
+                priority
+              />
             </div>
-            <div>
-              <p className="font-bold text-foreground">SIMKA Al Wathoniyah 9</p>
-              <p className="text-muted-foreground text-xs">Sistem Informasi Kepegawaian</p>
+
+            <div className="space-y-1">
+              <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
+                SIMKA
+              </h1>
+              <h2 className="text-base sm:text-lg font-bold text-primary tracking-tight">
+                Al Wathoniyah Asshodriyah 9
+              </h2>
+            </div>
+
+            <div className="mt-2.5 text-xs sm:text-sm text-muted-foreground leading-relaxed">
+              <p className="font-medium text-foreground/80">Sistem Informasi Kepegawaian</p>
+              <p>Yayasan Al Wathoniyah Asshodriyah 9</p>
             </div>
           </div>
 
-          <div className="space-y-2 mb-8">
-            <h2 className="text-2xl font-bold text-foreground">Selamat Datang</h2>
-            <p className="text-muted-foreground text-sm">Masuk ke akun Anda untuk melanjutkan</p>
-          </div>
-
-          <div className="space-y-5">
-            <div className="space-y-2">
-              <Label htmlFor="identifier">NIP / Email</Label>
+          {/* Form */}
+          <div className="space-y-4">
+            <div className="space-y-1.5">
+              <Label htmlFor="identifier" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                NIP / Email
+              </Label>
               <Input
                 id="identifier"
                 placeholder="Masukkan NIP atau Email"
@@ -175,15 +127,18 @@ export default function LoginPage() {
                 value={identifier}
                 onChange={(e) => setIdentifier(e.target.value)}
                 onKeyDown={handleKeyDown}
+                className="h-10.5 rounded-lg border-input bg-background/50 focus-visible:ring-2 focus-visible:ring-primary/20"
               />
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <div className="flex items-center justify-between">
-                <Label htmlFor="password">Password</Label>
+                <Label htmlFor="password" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Password
+                </Label>
                 <Link
                   href="/forgot-password"
-                  className="text-xs text-primary hover:underline"
+                  className="text-xs font-medium text-primary hover:underline hover:text-primary/80 transition-colors"
                 >
                   Lupa password?
                 </Link>
@@ -197,33 +152,35 @@ export default function LoginPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  className="pr-10"
+                  className="h-10.5 rounded-lg border-input bg-background/50 pr-10 focus-visible:ring-2 focus-visible:ring-primary/20"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors p-1"
+                  aria-label={showPassword ? "Sembunyikan password" : "Lihat password"}
                 >
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
             </div>
 
-            <Button onClick={onSubmit} className="w-full" disabled={loading}>
+            <Button
+              onClick={onSubmit}
+              className="w-full h-10.5 mt-2 rounded-lg font-semibold text-sm shadow-sm hover:shadow transition-all"
+              disabled={loading}
+            >
               {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Masuk
             </Button>
           </div>
-
-          <div className="mt-8 p-4 bg-muted rounded-xl border border-border">
-            <p className="text-xs font-semibold text-muted-foreground mb-2">Akun Demo:</p>
-            <div className="space-y-1 text-xs text-muted-foreground">
-              <p><span className="font-medium">Super Admin:</span> admin@alwathoniyah9.sch.id / admin123</p>
-              <p><span className="font-medium">HR:</span> hr@alwathoniyah9.sch.id / admin123</p>
-            </div>
-          </div>
         </div>
       </div>
+
+      {/* Footer */}
+      <footer className="text-center py-4 text-xs text-muted-foreground/70">
+        © {new Date().getFullYear()} Yayasan Al Wathoniyah Asshodriyah 9. All rights reserved.
+      </footer>
     </div>
   )
 }

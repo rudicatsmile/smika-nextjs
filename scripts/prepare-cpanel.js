@@ -1,14 +1,15 @@
 const fs = require("fs");
 const path = require("path");
 
-function copyDir(src, dest) {
+function copyDir(src, dest, exclude = []) {
   if (!fs.existsSync(src)) return;
   fs.mkdirSync(dest, { recursive: true });
   for (const entry of fs.readdirSync(src, { withFileTypes: true })) {
+    if (exclude.includes(entry.name)) continue;
     const srcPath = path.join(src, entry.name);
     const destPath = path.join(dest, entry.name);
     if (entry.isDirectory()) {
-      copyDir(srcPath, destPath);
+      copyDir(srcPath, destPath, exclude);
     } else {
       fs.copyFileSync(srcPath, destPath);
     }
@@ -25,11 +26,17 @@ if (!fs.existsSync(standaloneDir)) {
 
 console.log("Menyiapkan berkas untuk cPanel deployment...");
 
-// 1. Copy public -> .next/standalone/public
+// 1. Copy public -> .next/standalone/public (KECUALIKAN folder uploads agar zip tidak membengkak ratusan MB)
 const publicSrc = path.join(rootDir, "public");
 const publicDest = path.join(standaloneDir, "public");
-copyDir(publicSrc, publicDest);
-console.log("✔ Folder public berhasil disalin");
+if (fs.existsSync(path.join(publicDest, "uploads"))) {
+  fs.rmSync(path.join(publicDest, "uploads"), { recursive: true, force: true });
+}
+copyDir(publicSrc, publicDest, ["uploads"]);
+// Pastikan struktur folder uploads ada tapi tanpa menyalin berkas lampiran
+fs.mkdirSync(path.join(publicDest, "uploads", "avatars"), { recursive: true });
+fs.mkdirSync(path.join(publicDest, "uploads", "app"), { recursive: true });
+console.log("✔ Folder public (tanpa uploads lampiran 500MB) berhasil disalin");
 
 // 2. Copy .next/static -> .next/standalone/.next/static
 const staticSrc = path.join(rootDir, ".next", "static");
@@ -51,7 +58,17 @@ if (fs.existsSync(genSrc)) {
   console.log("✔ Folder app/generated berhasil disalin");
 }
 
-// 5. Create .env.example template for cPanel
+// 5. Hapus file .env lokal dari standalone agar TIDAK menimpa .env produksi cPanel
+const envFiles = [".env", ".env.local", ".env.production", ".env.development"];
+for (const envFile of envFiles) {
+  const p = path.join(standaloneDir, envFile);
+  if (fs.existsSync(p)) {
+    fs.unlinkSync(p);
+    console.log(`✔ File ${envFile} lokal dihapus dari standalone agar aman (tidak menimpa cPanel)`);
+  }
+}
+
+// 6. Create .env.example template for cPanel
 const envContent = `# Konfigurasi Database cPanel
 DATABASE_URL="mysql://cpaneluser_dbuser:PasswordDatabase@localhost:3306/cpaneluser_dbname"
 

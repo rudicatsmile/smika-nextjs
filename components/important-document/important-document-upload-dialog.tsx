@@ -25,14 +25,14 @@ interface ImportantDocumentItem {
   id: string
   employeeId: string
   documentType: string
-  fileUrl?: string
+  fileUrl?: string | null
 }
 
 interface Employee {
   id: string
   fullName: string
   employeeIdNumber: string
-  department: { id: string; name: string }
+  department?: { id: string; name: string } | null
 }
 
 export function ImportantDocumentUploadDialog({ 
@@ -159,7 +159,7 @@ export function ImportantDocumentUploadDialog({
         <DialogHeader>
           <DialogTitle>Upload Dokumen Penting</DialogTitle>
           <div className="text-sm text-muted-foreground">
-            {employee.fullName} ({employee.employeeIdNumber}) - {employee.department.name}
+            {employee.fullName} ({employee.employeeIdNumber}) - {employee.department?.name ?? "-"}
           </div>
         </DialogHeader>
 

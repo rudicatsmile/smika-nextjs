@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "build:cpanel": "next build && node scripts/prepare-cpanel.js",
+    "build:cpanel": "next build && node scripts/prepare-cpanel.js && tar -a -c -f deploy-update.zip -C .next/standalone .",
+    "zip:cpanel": "tar -a -c -f deploy-update.zip -C .next/standalone .",
     "start": "next start",
     "lint": "eslint",
     "seed": "npx tsx prisma/seed.ts"

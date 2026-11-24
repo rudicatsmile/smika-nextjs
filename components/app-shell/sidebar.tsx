@@ -141,7 +141,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
 
   const appName = appConfig?.appName || "SIMKA"
   const appOwner = appConfig?.appOwner || "Al Wathoniyah 9"
-  const logoUrl = appConfig?.logoUrl
+  const logoUrl = appConfig?.logoUrl || "/icon.png"
 
   return (
     <aside
@@ -285,7 +285,7 @@ export function MobileSidebar({ open, onClose }: { open: boolean; onClose: () =>
 
   const appName = appConfig?.appName || "SIMKA"
   const appOwner = appConfig?.appOwner || "Al Wathoniyah 9"
-  const logoUrl = appConfig?.logoUrl
+  const logoUrl = appConfig?.logoUrl || "/icon.png"
 
   return (
     <>

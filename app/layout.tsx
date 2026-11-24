@@ -23,7 +23,7 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     title: `${appName} ${appOwner}`,
     description: `Sistem Informasi Kepegawaian ${appOwner}`,
-    icons: faviconUrl ? [{ rel: "icon", url: faviconUrl }] : [],
+    icons: faviconUrl ? [{ rel: "icon", url: faviconUrl }] : [{ rel: "icon", url: "/favicon.ico" }],
   }
 }
 

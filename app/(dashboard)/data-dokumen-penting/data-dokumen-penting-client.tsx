@@ -33,11 +33,11 @@ interface EmployeeWithDocuments {
   id: string
   fullName: string
   employeeIdNumber: string
-  department: { id: string; name: string }
+  department: { id: string; name: string } | null
   importantDocuments: Array<{
     id: string
     documentType: string
-    fileUrl: string
+    fileUrl: string | null
   }>
 }
 
