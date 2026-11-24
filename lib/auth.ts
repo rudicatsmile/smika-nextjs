@@ -2,6 +2,7 @@ import { NextAuthOptions } from "next-auth"
 import CredentialsProvider from "next-auth/providers/credentials"
 import { prisma } from "./prisma"
 import bcrypt from "bcryptjs"
+import crypto from "crypto"
 import { Role } from "@/app/generated/prisma/enums"
 
 declare module "next-auth" {
@@ -64,10 +65,42 @@ export const authOptions: NextAuthOptions = {
 
           if (!user) return null
 
-          const isValid = await bcrypt.compare(
-            credentials.password,
-            user.passwordHash
-          )
+          let isValid = false
+
+          // 1. Cek Bcrypt (Next.js standar baru)
+          if (
+            user.passwordHash.startsWith("$2a$") ||
+            user.passwordHash.startsWith("$2b$") ||
+            user.passwordHash.startsWith("$2y$")
+          ) {
+            isValid = await bcrypt.compare(credentials.password, user.passwordHash)
+          } else {
+            // 2. Cek SHA-1 (Sistem CodeIgniter lama)
+            const sha1Hash = crypto.createHash("sha1").update(credentials.password).digest("hex")
+            if (sha1Hash.toLowerCase() === user.passwordHash.toLowerCase()) {
+              isValid = true
+            } else {
+              // 3. Cadangan: Cek MD5 (jika ada akun lama varian MD5)
+              const md5Hash = crypto.createHash("md5").update(credentials.password).digest("hex")
+              if (md5Hash.toLowerCase() === user.passwordHash.toLowerCase()) {
+                isValid = true
+              }
+            }
+
+            // Jika valid via SHA-1/MD5 lama, auto-upgrade passwordHash ke Bcrypt secara diam-diam
+            if (isValid) {
+              try {
+                const upgradedBcrypt = await bcrypt.hash(credentials.password, 10)
+                await prisma.user.update({
+                  where: { id: user.id },
+                  data: { passwordHash: upgradedBcrypt },
+                })
+              } catch (upgradeErr) {
+                console.error("Auto-upgrade password hash failed:", upgradeErr)
+              }
+            }
+          }
+
           if (!isValid) return null
 
           return {
