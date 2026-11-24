@@ -24,7 +24,7 @@ interface TopbarProps {
 
 export function Topbar({ onMenuClick }: TopbarProps) {
   const { data: session } = useSession()
-  const { theme, setTheme } = useTheme()
+  const { theme, setTheme, resolvedTheme } = useTheme()
 
   const initials = session?.user?.name
     ? session.user.name.split(" ").slice(0, 2).map((n) => n[0]).join("").toUpperCase()
@@ -50,7 +50,10 @@ export function Topbar({ onMenuClick }: TopbarProps) {
         <Button
           variant="ghost"
           size="icon"
-          onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+          onClick={() => {
+            const current = resolvedTheme || theme
+            setTheme(current === "dark" ? "light" : "dark")
+          }}
           className="text-muted-foreground"
         >
           <Sun className="h-4 w-4 rotate-0 scale-100 dark:-rotate-90 dark:scale-0 transition-all" />

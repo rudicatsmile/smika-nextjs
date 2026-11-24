@@ -566,7 +566,12 @@ interface MobileBottomNavProps {
 export function MobileBottomNav({ open: controlledOpen, onOpenChange }: MobileBottomNavProps) {
   const pathname = usePathname()
   const { data: session } = useSession()
-  const { theme, setTheme } = useTheme()
+  const { theme, setTheme, resolvedTheme } = useTheme()
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   const [uncontrolledOpen, setUncontrolledOpen] = useState(false)
   const isSheetOpen = controlledOpen !== undefined ? controlledOpen : uncontrolledOpen
@@ -878,10 +883,13 @@ export function MobileBottomNav({ open: controlledOpen, onOpenChange }: MobileBo
                 {/* Ganti Tema Tampilan */}
                 <button
                   type="button"
-                  onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+                  onClick={() => {
+                    const current = resolvedTheme || theme
+                    setTheme(current === "dark" ? "light" : "dark")
+                  }}
                   className="flex flex-col items-center justify-center gap-1 p-2 rounded-xl border border-border bg-muted/30 hover:bg-muted/60 text-[11px] font-medium text-foreground transition active:scale-95 text-center"
                 >
-                  {theme === "dark" ? (
+                  {mounted && (resolvedTheme === "dark" || theme === "dark") ? (
                     <>
                       <Sun className="h-4 w-4 text-amber-500" />
                       <span>Terang</span>
