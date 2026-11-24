@@ -1,0 +1,68 @@
+=== SIMKA MIGRATION LOG - STARTED AT 2026-11-23T02:06:11.284Z ===
+
+
+============================================================
+  EXTRACTING DATA FROM LEGACY DATABASE (simka9_ci)
+============================================================
+
+[INFO] Extracted:
+- Pegawai:              285
+- Legacy Users:         11
+- Unit Kerja:           17
+- Jabatan:              17
+- Jenjang Pendidikan:   9
+- Agama:                7
+- Anak:                 287
+- Pasangan:             182
+- Riwayat Pendidikan:   690
+- Pelatihan / Diklat:   236
+- Sertifikasi:          78
+- Kerja Lain:           55
+- Organisasi:           51
+- Data Kesehatan:       126
+- Kesediaan:            631
+- Dokumen Penting:      320
+- Penilaian DP3:        634
+
+
+============================================================
+  1. SYNCING MASTER DATA
+============================================================
+
+[SUCCESS] [religion] #1 - Islam
+[SUCCESS] [religion] #2 - Kristen Protestan
+[SUCCESS] [religion] #3 - Kristen Katolik
+[SUCCESS] [religion] #4 - Hindu
+[SUCCESS] [religion] #5 - Budha
+[SUCCESS] [religion] #6 - Konghucu
+[SUCCESS] [religion] #7 - Test 02
+[SUCCESS] [education] #7 - Belum bersekolah
+[SUCCESS] [education] #1 - SD / MI / Paket A
+[SUCCESS] [education] #2 - SLTP / Paket B
+[SUCCESS] [education] #3 - SLTA / Paket C
+[SUCCESS] [education] #10 - Mahasiswa
+[SUCCESS] [education] #9 - Diploma III
+[SUCCESS] [education] #4 - S1 / Diploma IV
+[SUCCESS] [education] #5 - S2
+[SUCCESS] [education] #6 - S3
+[SUCCESS] [occupation] #1 - Pelajar
+[SUCCESS] [occupation] #2 - Belum Bekerja
+[SUCCESS] [occupation] #3 - Karyawan Swasta
+[SUCCESS] [occupation] #4 - PNS/TNI/POLRI
+[SUCCESS] [occupation] #5 - Mengurus Rumah Tangga
+[SUCCESS] [occupation] #6 - Lainnya
+[SUCCESS] [occupation] #7 - Pengusaha
+[SUCCESS] [year] #2025 - 2025
+[SUCCESS] [year] #2026 - 2026
+[SUCCESS] [statusdp3] #1 - Lembaga
+[SUCCESS] [statusdp3] #2 - Kepegawaian
+[SUCCESS] [statusdp3] #3 - Pimpinan / Koordinator
+[SUCCESS] [statusdp3] #4 - Pimpinan / Wakil Pimpinan
+[SUCCESS] [statusdp3] #5 - Disetujui
+[SUCCESS] [statusdp3] #6 - Disetujui dengan Catatan
+[SUCCESS] [statusdp3] #7 - Dipertimbangkan
+[SUCCESS] [statusdp3] #8 - Tidak Disetujui
+[ERROR] [SYSTEM] #MIGRATION_FATAL - ReferenceError: DepartmentType is not defined
+    at syncMasterData (D:\project\web\simka-nextjs\migration\load\index.ts:186:20)
+    at main (D:\project\web\simka-nextjs\migration\run.ts:113:25)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)

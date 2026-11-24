@@ -1,7 +1,14 @@
 import type { NextConfig } from "next"
 
 const nextConfig: NextConfig = {
-  serverExternalPackages: ["@prisma/client", "bcryptjs", "better-sqlite3", "@prisma/adapter-better-sqlite3"],
+  output: "standalone",
+  serverExternalPackages: [
+    "@prisma/client",
+    "bcryptjs",
+    "better-sqlite3",
+    "@prisma/adapter-better-sqlite3",
+    "@prisma/adapter-mariadb",
+  ],
   images: {
     remotePatterns: [],
   },

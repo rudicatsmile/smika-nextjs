@@ -1,0 +1,9 @@
+=== SIMKA MIGRATION LOG - STARTED AT 2026-11-23T01:59:52.370Z ===
+
+[ERROR] [SYSTEM] #MIGRATION_FATAL - SqlError: (conn:-1, no: 45028, SQLState: HY000) pool failed to retrieve a connection from pool
+    (pool connections: active=0 idle=0 limit=5)
+    at S (D:\project\web\simka-nextjs\node_modules\mariadb\dist\promise.cjs:5:125)
+    at vr._rejectTimedOutRequest (D:\project\web\simka-nextjs\node_modules\mariadb\dist\promise.cjs:35:15457)
+    at vr._checkRequestTimeouts (D:\project\web\simka-nextjs\node_modules\mariadb\dist\promise.cjs:35:15182)
+    at listOnTimeout (node:internal/timers:635:17)
+    at process.processTimers (node:internal/timers:571:7)
