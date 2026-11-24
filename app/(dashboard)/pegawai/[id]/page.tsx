@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation"
+import { Suspense } from "react"
 import { prisma } from "@/lib/prisma"
 import { EmployeeDetailClient } from "./employee-detail-client"
 
@@ -6,10 +7,13 @@ export const dynamic = "force-dynamic"
 
 export default async function EmployeeDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>
+  searchParams?: Promise<{ tab?: string }>
 }) {
   const { id } = await params
+  const { tab } = (await searchParams) || {}
 
   const [employee, educations, educationHistories, occupations, children, spouses, trainings, employmentDocuments, certifications, workUnits, healthData, socialOrganizations] = await Promise.all([
     prisma.employee.findUnique({
@@ -70,19 +74,22 @@ export default async function EmployeeDetailPage({
   if (!employee) notFound()
 
   return (
-    <EmployeeDetailClient
-      employee={employee}
-      educations={educations}
-      educationHistories={educationHistories}
-      occupations={occupations}
-      children={children}
-      spouses={spouses}
-      trainings={trainings}
-      employmentDocuments={employmentDocuments}
-      certifications={certifications}
-      workUnits={workUnits}
-      healthData={healthData}
-      socialOrganizations={socialOrganizations}
-    />
+    <Suspense fallback={null}>
+      <EmployeeDetailClient
+        employee={employee}
+        initialTab={tab}
+        educations={educations}
+        educationHistories={educationHistories}
+        occupations={occupations}
+        children={children}
+        spouses={spouses}
+        trainings={trainings}
+        employmentDocuments={employmentDocuments}
+        certifications={certifications}
+        workUnits={workUnits}
+        healthData={healthData}
+        socialOrganizations={socialOrganizations}
+      />
+    </Suspense>
   )
 }

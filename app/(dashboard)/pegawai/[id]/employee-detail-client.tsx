@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react"
 import Link from "next/link"
+import { useSearchParams, useRouter, usePathname } from "next/navigation"
 import { useSession } from "next-auth/react"
 import {
   ArrowLeft, Edit, User, Briefcase, GraduationCap, FileText, Clock, MapPin,
@@ -132,8 +133,10 @@ export function EmployeeDetailClient({
   workUnits,
   healthData,
   socialOrganizations,
+  initialTab,
 }: {
   employee: any
+  initialTab?: string
   educations: any[]
   educationHistories: any[]
   occupations: any[]
@@ -148,14 +151,10 @@ export function EmployeeDetailClient({
 }) {
   const { data: session } = useSession()
   const role = session?.user?.role as Role | undefined
-  const [activeTab, setActiveTab] = useState("personal")
-  const tabsScrollRef = useRef<HTMLDivElement>(null)
-  const [canScrollLeft, setCanScrollLeft] = useState(false)
-  const [canScrollRight, setCanScrollRight] = useState(false)
-
-  const initials = employee.fullName
-    ? employee.fullName.split(" ").slice(0, 2).map((n: string) => n[0]).join("").toUpperCase()
-    : "P"
+  const searchParams = useSearchParams()
+  const router = useRouter()
+  const pathname = usePathname()
+  const tabQuery = searchParams.get("tab")
 
   // Master definition of all 12 tabs with live badge counts
   const tabItems = [
@@ -173,6 +172,29 @@ export function EmployeeDetailClient({
     { id: "riwayat", label: "Riwayat", icon: Clock, count: employee.history?.length ?? 0 },
   ]
 
+  // Normalisasi alias ID tab
+  const normalizeTab = (raw?: string | null): string | null => {
+    if (!raw) return null
+    const clean = raw.toLowerCase().trim()
+    if (tabItems.some((t) => t.id === clean)) return clean
+    if (clean === "kesehatan" || clean === "bpjs" || clean === "health") return "data-kesehatan"
+    if (clean === "organisasi" || clean === "ormas") return "data-organisasi-kemasyarakatan"
+    if (clean === "sk" || clean === "riwayat-sk") return "riwayat-kepegawaian"
+    if (clean === "unit-lain") return "unit-kerja-lain"
+    if (clean === "profil" || clean === "biodata") return "personal"
+    return null
+  }
+
+  const resolvedInitialTab = normalizeTab(tabQuery) || normalizeTab(initialTab) || "personal"
+  const [activeTab, setActiveTab] = useState(resolvedInitialTab)
+  const tabsScrollRef = useRef<HTMLDivElement>(null)
+  const [canScrollLeft, setCanScrollLeft] = useState(false)
+  const [canScrollRight, setCanScrollRight] = useState(false)
+
+  const initials = employee.fullName
+    ? employee.fullName.split(" ").slice(0, 2).map((n: string) => n[0]).join("").toUpperCase()
+    : "P"
+
   // Check scroll position for desktop arrow indicators
   const checkScroll = () => {
     if (tabsScrollRef.current) {
@@ -188,6 +210,46 @@ export function EmployeeDetailClient({
     return () => window.removeEventListener("resize", checkScroll)
   }, [])
 
+  // Sinkronisasi saat URL searchParams berganti (misal saat menu bottom sheet diklik berulang kali)
+  useEffect(() => {
+    const currentParam = searchParams.get("tab")
+    const matched = normalizeTab(currentParam)
+    if (matched && matched !== activeTab) {
+      setActiveTab(matched)
+      const timer = setTimeout(() => {
+        const tabsSection = document.getElementById("profile-tabs-section")
+        if (tabsSection) {
+          tabsSection.scrollIntoView({ behavior: "smooth", block: "start" })
+        }
+        const el = document.getElementById(`tab-trigger-${matched}`)
+        if (el) {
+          el.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" })
+        }
+      }, 120)
+      return () => clearTimeout(timer)
+    }
+  }, [searchParams])
+
+  // Scroll otomatis fokus ke area Tab saat halaman pertama kali dimuat dengan parameter tab
+  useEffect(() => {
+    if (tabQuery || initialTab) {
+      const initialTarget = normalizeTab(tabQuery || initialTab)
+      if (initialTarget) {
+        const timer = setTimeout(() => {
+          const tabsSection = document.getElementById("profile-tabs-section")
+          if (tabsSection) {
+            tabsSection.scrollIntoView({ behavior: "smooth", block: "start" })
+          }
+          const el = document.getElementById(`tab-trigger-${initialTarget}`)
+          if (el) {
+            el.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" })
+          }
+        }, 250)
+        return () => clearTimeout(timer)
+      }
+    }
+  }, [])
+
   const scrollTabs = (direction: "left" | "right") => {
     if (tabsScrollRef.current) {
       const scrollAmount = direction === "left" ? -240 : 240
@@ -195,9 +257,10 @@ export function EmployeeDetailClient({
     }
   }
 
-  // Smooth scroll active tab button into center view
+  // Smooth scroll active tab button into center view & sinkronkan ke URL
   const handleTabChange = (value: string) => {
     setActiveTab(value)
+    router.replace(`${pathname}?tab=${value}`, { scroll: false })
     const el = document.getElementById(`tab-trigger-${value}`)
     if (el) {
       el.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" })
@@ -338,7 +401,7 @@ export function EmployeeDetailClient({
       </Card>
 
       {/* Main Tabs Section */}
-      <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full space-y-5">
+      <Tabs id="profile-tabs-section" value={activeTab} onValueChange={handleTabChange} className="w-full space-y-5 scroll-mt-20">
         {/* Mobile Quick Dropdown Selector (< sm screens) */}
         <div className="sm:hidden w-full bg-card p-2 rounded-xl border border-border/70 shadow-xs">
           <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider block mb-1.5 px-1">

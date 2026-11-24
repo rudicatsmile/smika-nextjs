@@ -165,7 +165,7 @@ export function buildRoleNavigation(
           {
             groupTitle: "Layanan & Administrasi Mandiri",
             items: [
-              { title: "Profil & Biodata Pribadi", href: profileHref, icon: User, desc: "Data diri, NIP, & unit dinas" },
+              { title: "Profil & Biodata Pribadi", href: `${profileHref}?tab=personal`, icon: User, desc: "Data diri, NIP, & unit dinas" },
               { title: "Form Kesediaan Mengajar", href: "/kesediaan", icon: Handshake, badge: "Penting", desc: "Kesanggupan beban kerja & hari" },
               { title: "Upload Dokumen Penting", href: "/data-dokumen-penting", icon: Upload, desc: "Berkas digital kepegawaian" },
               { title: "Hasil Penilaian DP3", href: "/dp3", icon: ClipboardCheck, desc: "Rekap nilai dan catatan pimpinan" },
@@ -174,17 +174,17 @@ export function buildRoleNavigation(
           {
             groupTitle: "Riwayat & Portofolio Guru",
             items: [
-              { title: "Riwayat Pendidikan", href: profileHref, icon: GraduationCap, desc: "Ijazah & jenjang akademik" },
-              { title: "Pelatihan & Diklat", href: profileHref, icon: Award, desc: "Sertifikat workshop & pelatihan" },
-              { title: "Sertifikasi Pendidik", href: profileHref, icon: CheckCircle2, desc: "Serdik & status inpassing" },
-              { title: "Unit Kerja Luar", href: profileHref, icon: Building2, desc: "Aktivitas tugas di luar yayasan" },
+              { title: "Riwayat Pendidikan", href: `${profileHref}?tab=pendidikan`, icon: GraduationCap, desc: "Ijazah & jenjang akademik" },
+              { title: "Pelatihan & Diklat", href: `${profileHref}?tab=pelatihan`, icon: Award, desc: "Sertifikat workshop & pelatihan" },
+              { title: "Sertifikasi Pendidik", href: `${profileHref}?tab=sertifikasi`, icon: CheckCircle2, desc: "Serdik & status inpassing" },
+              { title: "Unit Kerja Luar", href: `${profileHref}?tab=unit-kerja-lain`, icon: Building2, desc: "Aktivitas tugas di luar yayasan" },
             ],
           },
           {
             groupTitle: "Data Keluarga & Kesehatan",
             items: [
-              { title: "Data Keluarga & Pasangan", href: profileHref, icon: Users, desc: "Suami/istri dan anak tanggungan" },
-              { title: "Data Kesehatan & BPJS", href: profileHref, icon: Heart, desc: "Faskes & nomor kepesertaan" },
+              { title: "Data Keluarga & Pasangan", href: `${profileHref}?tab=keluarga`, icon: Users, desc: "Suami/istri dan anak tanggungan" },
+              { title: "Data Kesehatan & BPJS", href: `${profileHref}?tab=data-kesehatan`, icon: Heart, desc: "Faskes & nomor kepesertaan" },
             ],
           },
         ],
@@ -610,9 +610,15 @@ export function MobileBottomNav({ open: controlledOpen, onOpenChange }: MobileBo
     : "bg-muted text-muted-foreground"
 
   const isCurrentActive = (href: string, matchPrefix = false) => {
-    if (href === "/dashboard") return pathname === "/dashboard"
-    if (matchPrefix) return pathname === href || pathname.startsWith(href + "/")
-    return pathname === href
+    const [hrefPath, hrefQuery] = href.split("?")
+    if (hrefPath === "/dashboard") return pathname === "/dashboard"
+    if (hrefQuery) {
+      if (typeof window === "undefined") return false
+      const currentQuery = window.location.search.replace(/^\?/, "")
+      return pathname === hrefPath && currentQuery === hrefQuery
+    }
+    if (matchPrefix) return pathname === hrefPath || pathname.startsWith(hrefPath + "/")
+    return pathname === hrefPath
   }
 
   return (
