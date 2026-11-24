@@ -203,45 +203,49 @@ export function EducationHistoryTable({ employeeId, initialData, educationOption
     <Card>
       <CardHeader>
         <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2">
-            <GraduationCap className="h-5 w-5" />
-            Education History
+          <CardTitle className="flex items-center gap-2 text-base font-semibold">
+            <GraduationCap className="h-5 w-5 text-primary" />
+            Riwayat Pendidikan Lengkap
           </CardTitle>
           <Button onClick={() => openDialog()} size="sm">
             <Plus className="h-4 w-4 mr-2" />
-            Add
+            Tambah Riwayat
           </Button>
         </div>
       </CardHeader>
       <CardContent>
         {data.length === 0 ? (
-          <div className="text-center py-8 text-muted-foreground">
-            No education history recorded
+          <div className="text-center py-8 text-muted-foreground text-sm">
+            Belum ada data riwayat pendidikan yang tercatat.
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-3">
             {data.map((item) => (
-              <div key={item.id} className="border rounded-lg p-4 hover:bg-muted/50 transition-colors">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="font-semibold text-lg">{item.education.name}</div>
-                    <div className="text-sm text-muted-foreground">{item.education.level}</div>
+              <div key={item.id} className="border border-border/70 rounded-xl p-4 hover:bg-muted/40 transition-colors bg-card">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-semibold text-base text-foreground">{item.education.name}</span>
+                      <span className="text-xs bg-primary/10 text-primary font-medium px-2 py-0.5 rounded-full">{item.education.level}</span>
+                      {!item.isGraduated && (
+                        <span className="text-xs bg-amber-500/10 text-amber-700 dark:text-amber-300 font-medium px-2 py-0.5 rounded-full">Sedang Menempuh</span>
+                      )}
+                    </div>
                     {item.institutionName && (
-                      <div className="text-sm mt-1">{item.institutionName}</div>
+                      <div className="text-sm font-medium text-foreground/80 mt-1">{item.institutionName}</div>
                     )}
-                    <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground mt-2">
-                      {item.major && <div>Major: {item.major}</div>}
-                      {item.graduationYear && <div>Year: {item.graduationYear}</div>}
-                      {item.gpa && <div>GPA: {item.gpa}</div>}
-                      {!item.isGraduated && <div className="text-amber-600">In Progress</div>}
+                    <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground mt-2">
+                      {item.major && <div>Jurusan: <span className="font-medium text-foreground">{item.major}</span></div>}
+                      {item.graduationYear && <div>Tahun Lulus: <span className="font-medium text-foreground">{item.graduationYear}</span></div>}
+                      {item.gpa && <div>IPK: <span className="font-medium text-foreground">{item.gpa}</span></div>}
                     </div>
                   </div>
-                  <div className="flex gap-2">
-                    <Button variant="ghost" size="icon" onClick={() => openDialog(item)}>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground" onClick={() => openDialog(item)} aria-label="Edit">
                       <Edit className="h-4 w-4" />
                     </Button>
-                    <Button variant="ghost" size="icon" onClick={() => setDeleteId(item.id)}>
-                      <Trash2 className="h-4 w-4 text-destructive" />
+                    <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive/80 hover:text-destructive hover:bg-destructive/10" onClick={() => setDeleteId(item.id)} aria-label="Hapus">
+                      <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
                 </div>
@@ -252,16 +256,16 @@ export function EducationHistoryTable({ employeeId, initialData, educationOption
       </CardContent>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>{editItem ? "Edit Education History" : "Add Education History"}</DialogTitle>
+            <DialogTitle>{editItem ? "Edit Riwayat Pendidikan" : "Tambah Riwayat Pendidikan"}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="educationId">Education Level</Label>
+              <Label htmlFor="educationId">Jenjang Pendidikan</Label>
               <Select value={form.educationId} onValueChange={(v) => setForm({ ...form, educationId: v })}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Select education level" />
+                  <SelectValue placeholder="Pilih jenjang pendidikan" />
                 </SelectTrigger>
                 <SelectContent>
                   {educationOptions.map((edu) => (
@@ -271,26 +275,26 @@ export function EducationHistoryTable({ employeeId, initialData, educationOption
               </Select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="institutionName">Institution Name</Label>
+              <Label htmlFor="institutionName">Nama Institusi / Kampus / Sekolah</Label>
               <Input
                 id="institutionName"
                 value={form.institutionName}
                 onChange={(e) => setForm({ ...form, institutionName: e.target.value })}
-                placeholder="University / School name"
+                placeholder="Contoh: Universitas Indonesia"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="major">Major / Field of Study</Label>
+              <Label htmlFor="major">Jurusan / Program Studi</Label>
               <Input
                 id="major"
                 value={form.major}
                 onChange={(e) => setForm({ ...form, major: e.target.value })}
-                placeholder="Computer Science, etc."
+                placeholder="Contoh: Manajemen Pendidikan"
               />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="graduationYear">Graduation Year</Label>
+                <Label htmlFor="graduationYear">Tahun Lulus</Label>
                 <Input
                   id="graduationYear"
                   type="number"
@@ -302,14 +306,14 @@ export function EducationHistoryTable({ employeeId, initialData, educationOption
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="gpa">GPA</Label>
+                <Label htmlFor="gpa">IPK</Label>
                 <Input
                   id="gpa"
                   type="number"
                   step="0.01"
                   value={form.gpa}
                   onChange={(e) => setForm({ ...form, gpa: e.target.value })}
-                  placeholder="3.5"
+                  placeholder="3.75"
                   min={0}
                   max={4}
                 />
@@ -317,7 +321,7 @@ export function EducationHistoryTable({ employeeId, initialData, educationOption
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="startDate">Start Date</Label>
+                <Label htmlFor="startDate">Tgl Mulai</Label>
                 <Input
                   id="startDate"
                   type="date"
@@ -326,7 +330,7 @@ export function EducationHistoryTable({ employeeId, initialData, educationOption
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="endDate">End Date</Label>
+                <Label htmlFor="endDate">Tgl Selesai</Label>
                 <Input
                   id="endDate"
                   type="date"
@@ -335,20 +339,20 @@ export function EducationHistoryTable({ employeeId, initialData, educationOption
                 />
               </div>
             </div>
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-2 pt-1">
               <Switch
                 id="isGraduated"
                 checked={form.isGraduated}
                 onCheckedChange={(checked) => setForm({ ...form, isGraduated: checked })}
               />
-              <Label htmlFor="isGraduated">Graduated</Label>
+              <Label htmlFor="isGraduated">Sudah Lulus</Label>
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setDialogOpen(false)}>Batal</Button>
             <Button onClick={handleSubmit} disabled={isPending}>
               {isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              {editItem ? "Save Changes" : "Add"}
+              {editItem ? "Simpan Perubahan" : "Simpan"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -357,16 +361,16 @@ export function EducationHistoryTable({ employeeId, initialData, educationOption
       <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Education History</AlertDialogTitle>
+            <AlertDialogTitle>Hapus Riwayat Pendidikan</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete this education history? This action cannot be undone.
+              Apakah Anda yakin ingin menghapus data riwayat pendidikan ini? Tindakan ini tidak dapat dibatalkan.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} disabled={isPending}>
+            <AlertDialogCancel>Batal</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} disabled={isPending} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
               {isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              Delete
+              Hapus
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

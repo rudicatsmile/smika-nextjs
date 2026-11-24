@@ -130,3 +130,12 @@
     @apply font-sans;
   }
 }
+
+/* Hide scrollbar utility for sleek horizontal tab tracks */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
