@@ -45,6 +45,33 @@ interface EducationHistoryTableProps {
   educationOptions: EducationOption[]
 }
 
+const LEVELS_WITHOUT_MAJOR = new Set([
+  "SD",
+  "MI",
+  "PAKET A",
+  "SD / MI / PAKET A",
+  "SMP",
+  "SLTP",
+  "MTS",
+  "PAKET B",
+  "SLTP / PAKET B",
+])
+
+function shouldHideMajorField(education?: { name: string; level: string }): boolean {
+  if (!education) return false
+  const normalizedName = education.name.trim().toUpperCase().replace(/\s+/g, " ")
+  const normalizedLevel = education.level.trim().toUpperCase().replace(/\s+/g, " ")
+  if (LEVELS_WITHOUT_MAJOR.has(normalizedName) || LEVELS_WITHOUT_MAJOR.has(normalizedLevel)) {
+    return true
+  }
+  return (
+    normalizedName.includes("PAKET A") ||
+    normalizedName.includes("PAKET B") ||
+    normalizedName.startsWith("SD /") ||
+    normalizedName.startsWith("SLTP /")
+  )
+}
+
 export function EducationHistoryTable({ employeeId, initialData, educationOptions }: EducationHistoryTableProps) {
   const [data, setData] = useState<EducationHistoryItem[]>([])
   const [mounted, setMounted] = useState(false)
@@ -79,18 +106,22 @@ export function EducationHistoryTable({ employeeId, initialData, educationOption
 
   if (!mounted) return null
 
+  const selectedEducation = educationOptions.find((e) => e.id === form.educationId)
+  const hideMajorField = shouldHideMajorField(selectedEducation)
+
   const handleSubmit = async () => {
     if (!form.educationId) {
       toast.error("Education level is required")
       return
     }
+    const effectiveMajor = hideMajorField ? undefined : form.major.trim() || undefined
     setIsPending(true)
     try {
       if (editItem) {
         const result = await updateEducationHistory(editItem.id, {
           educationId: form.educationId,
           institutionName: form.institutionName || undefined,
-          major: form.major || undefined,
+          major: hideMajorField ? null : form.major.trim() || null,
           graduationYear: form.graduationYear ? parseInt(form.graduationYear) : undefined,
           startDate: form.startDate || undefined,
           endDate: form.endDate || undefined,
@@ -103,7 +134,7 @@ export function EducationHistoryTable({ employeeId, initialData, educationOption
             educationId: form.educationId,
             education: educationOptions.find(e => e.id === form.educationId)!,
             institutionName: form.institutionName || undefined,
-            major: form.major || undefined,
+            major: effectiveMajor,
             graduationYear: form.graduationYear ? parseInt(form.graduationYear) : undefined,
             startDate: form.startDate || undefined,
             endDate: form.endDate || undefined,
@@ -121,7 +152,7 @@ export function EducationHistoryTable({ employeeId, initialData, educationOption
           employeeId,
           educationId: form.educationId,
           institutionName: form.institutionName || undefined,
-          major: form.major || undefined,
+          major: effectiveMajor,
           graduationYear: form.graduationYear ? parseInt(form.graduationYear) : undefined,
           startDate: form.startDate || undefined,
           endDate: form.endDate || undefined,
@@ -134,7 +165,7 @@ export function EducationHistoryTable({ employeeId, initialData, educationOption
             educationId: form.educationId,
             education: educationOptions.find(e => e.id === form.educationId)!,
             institutionName: form.institutionName || undefined,
-            major: form.major || undefined,
+            major: effectiveMajor,
             graduationYear: form.graduationYear ? parseInt(form.graduationYear) : undefined,
             startDate: form.startDate || undefined,
             endDate: form.endDate || undefined,
@@ -263,7 +294,18 @@ export function EducationHistoryTable({ employeeId, initialData, educationOption
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <Label htmlFor="educationId">Jenjang Pendidikan</Label>
-              <Select value={form.educationId} onValueChange={(v) => setForm({ ...form, educationId: v })}>
+              <Select
+                value={form.educationId}
+                onValueChange={(v) => {
+                  const nextEdu = educationOptions.find((e) => e.id === v)
+                  const nextHideMajor = shouldHideMajorField(nextEdu)
+                  setForm((prev) => ({
+                    ...prev,
+                    educationId: v,
+                    major: nextHideMajor ? "" : prev.major,
+                  }))
+                }}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Pilih jenjang pendidikan" />
                 </SelectTrigger>
@@ -283,15 +325,17 @@ export function EducationHistoryTable({ employeeId, initialData, educationOption
                 placeholder="Contoh: Universitas Indonesia"
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="major">Jurusan / Program Studi</Label>
-              <Input
-                id="major"
-                value={form.major}
-                onChange={(e) => setForm({ ...form, major: e.target.value })}
-                placeholder="Contoh: Manajemen Pendidikan"
-              />
-            </div>
+            {!hideMajorField && (
+              <div className="space-y-2">
+                <Label htmlFor="major">Jurusan / Program Studi</Label>
+                <Input
+                  id="major"
+                  value={form.major}
+                  onChange={(e) => setForm({ ...form, major: e.target.value })}
+                  placeholder="Contoh: Manajemen Pendidikan"
+                />
+              </div>
+            )}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="graduationYear">Tahun Lulus</Label>

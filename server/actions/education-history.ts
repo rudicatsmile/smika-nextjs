@@ -56,7 +56,7 @@ export async function createEducationHistory(data: {
         employeeId: data.employeeId,
         educationId: data.educationId,
         institutionName: data.institutionName,
-        major: data.major,
+        major: data.major || null,
         graduationYear: data.graduationYear,
         startDate: data.startDate ? new Date(data.startDate) : null,
         endDate: data.endDate ? new Date(data.endDate) : null,
@@ -76,7 +76,7 @@ export async function createEducationHistory(data: {
 export async function updateEducationHistory(id: string, data: {
   educationId?: string
   institutionName?: string
-  major?: string
+  major?: string | null
   graduationYear?: number
   startDate?: string
   endDate?: string
@@ -105,7 +105,7 @@ export async function updateEducationHistory(id: string, data: {
       data: {
         educationId: data.educationId,
         institutionName: data.institutionName,
-        major: data.major,
+        major: data.major || null,
         graduationYear: data.graduationYear,
         startDate: data.startDate ? new Date(data.startDate) : null,
         endDate: data.endDate ? new Date(data.endDate) : null,
