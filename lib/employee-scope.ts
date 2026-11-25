@@ -238,6 +238,7 @@ export function canMutateEmployeeRecord(
 export interface SortableEmployeeItem {
   id: string
   fullName: string
+  employeeIdNumber?: string | null
   position?: { order?: number | null } | null
   department?: { order?: number | null } | null
 }
@@ -246,7 +247,8 @@ export interface SortableEmployeeItem {
  * Mengurutkan pegawai secara hierarkis:
  * 1. Urutan Jabatan (`position.order` ASC — pegawai tanpa jabatan di paling bawah)
  * 2. Urutan Unit/Departemen (`department.order` ASC — tanpa departemen di bawah)
- * 3. Nama Lengkap (`fullName` ASC)
+ * 3. NIP (`employeeIdNumber` ASC natural — pegawai tanpa NIP di bawah)
+ * 4. Nama Lengkap (`fullName` ASC)
  */
 export function compareEmployeesByHierarchy(
   a: SortableEmployeeItem,
@@ -260,5 +262,123 @@ export function compareEmployeesByHierarchy(
   const deptB = b.department?.order ?? Number.MAX_SAFE_INTEGER
   if (deptA !== deptB) return deptA - deptB
 
+  const nipA = a.employeeIdNumber?.trim() || ""
+  const nipB = b.employeeIdNumber?.trim() || ""
+  if (nipA !== nipB) {
+    if (!nipA) return 1
+    if (!nipB) return -1
+    const nipCompare = nipA.localeCompare(nipB, "id", {
+      numeric: true,
+      sensitivity: "base",
+    })
+    if (nipCompare !== 0) return nipCompare
+  }
+
   return a.fullName.localeCompare(b.fullName, "id")
+}
+
+/**
+ * Mengecek apakah user boleh menambah/mengubah/menghapus sub-data pegawai
+ * (SUPER_ADMIN, HR_PUSAT, ADMIN_UNIT unit terkait, atau PEGAWAI untuk datanya sendiri).
+ */
+export function canMutateEmployeeChildData(
+  scope: EmployeeAccessScope,
+  employee: { id: string; departmentId?: string | null }
+): boolean {
+  if (canMutateEmployeeRecord(scope, employee)) return true
+  return Boolean(scope.isSelfScoped && scope.selfEmployeeId && scope.selfEmployeeId === employee.id)
+}
+
+/**
+ * Membangun filter Prisma `where` yang aman & fail-closed untuk tabel relasi pegawai
+ * seperti riwayat kepegawaian, data keluarga, pelatihan, dan riwayat pendidikan.
+ */
+export function buildScopedEmployeeRelationWhere(
+  scope: EmployeeAccessScope,
+  filters?: { departmentId?: string; employeeId?: string }
+): Record<string, any> {
+  if (scope.isSelfScoped) {
+    return { employeeId: scope.selfEmployeeId ?? "__NO_EMPLOYEE__" }
+  }
+
+  if (scope.isUnitScoped) {
+    if (!scope.unitDepartmentId) {
+      return { employeeId: "__NO_EMPLOYEE__" }
+    }
+    const where: Record<string, any> = {
+      employee: { departmentId: scope.unitDepartmentId },
+    }
+    if (filters?.employeeId) {
+      where.employeeId = filters.employeeId
+    }
+    return where
+  }
+
+  if (scope.canViewAllEmployees) {
+    const where: Record<string, any> = {}
+    if (filters?.employeeId) {
+      where.employeeId = filters.employeeId
+    } else if (filters?.departmentId) {
+      where.employee = { departmentId: filters.departmentId }
+    }
+    return where
+  }
+
+  return { employeeId: "__NO_EMPLOYEE__" }
+}
+
+/**
+ * Memuat daftar departemen aktif dan pegawai aktif sesuai cakupan role user
+ * dengan urutan hierarki jabatan & departemen.
+ */
+export async function loadScopedEmployeeFilterData(user?: SessionScopeUser | null) {
+  const scope = await resolveEmployeeAccessScope(user)
+
+  let departments = await prisma.department.findMany({
+    where: { isActive: true },
+    orderBy: [{ order: "asc" }, { name: "asc" }],
+    select: { id: true, name: true },
+  })
+
+  if (scope.isUnitScoped) {
+    departments = scope.unitDepartmentId
+      ? departments.filter((d) => d.id === scope.unitDepartmentId)
+      : []
+  }
+
+  const rawEmployees = await prisma.employee.findMany({
+    where: {
+      employmentStatus: "AKTIF",
+      ...scope.employeeWhereFilter,
+    },
+    select: {
+      id: true,
+      fullName: true,
+      employeeIdNumber: true,
+      departmentId: true,
+      position: { select: { order: true } },
+      department: { select: { id: true, name: true, order: true } },
+    },
+  })
+
+  rawEmployees.sort(compareEmployeesByHierarchy)
+
+  const employees = rawEmployees.map((emp) => ({
+    id: emp.id,
+    fullName: emp.fullName,
+    employeeIdNumber: emp.employeeIdNumber,
+    departmentId: emp.departmentId,
+    department: emp.department
+      ? { id: emp.department.id, name: emp.department.name }
+      : null,
+  }))
+
+  return {
+    departments,
+    employees,
+    isUnitScoped: scope.isUnitScoped,
+    isSelfScoped: scope.isSelfScoped,
+    lockedDepartmentName:
+      scope.unitDepartment?.name ?? (scope.isUnitScoped ? "Unit belum diatur" : null),
+  }
 }

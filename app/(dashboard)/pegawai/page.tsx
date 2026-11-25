@@ -53,6 +53,7 @@ export default async function PegawaiPage({
       select: {
         id: true,
         fullName: true,
+        employeeIdNumber: true,
         position: { select: { order: true } },
         department: { select: { order: true } },
       },

@@ -3,45 +3,33 @@
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
-import { canManageEmployees, canViewOwnDepartmentEmployees, canEditOwnEmployeeData } from "@/lib/rbac"
-import { Role } from "@/app/generated/prisma/enums"
+import {
+  resolveEmployeeAccessScope,
+  canAccessEmployeeRecord,
+  canMutateEmployeeChildData,
+  buildScopedEmployeeRelationWhere,
+} from "@/lib/employee-scope"
 import { revalidatePath } from "next/cache"
 import { logActivity } from "@/lib/activity-log"
 
-async function checkPermission() {
+async function resolveAccessContext() {
   const session = await getServerSession(authOptions)
   if (!session?.user?.id) return null
-  const role = session.user.role as Role
-  if (!canManageEmployees(role) && !canViewOwnDepartmentEmployees(role) && !canEditOwnEmployeeData(role)) return null
-  return session
+  const scope = await resolveEmployeeAccessScope(session.user)
+  return { session, scope }
 }
 
 async function checkEmployeeAccess(employeeId: string) {
-  const session = await checkPermission()
-  if (!session) return null
+  const ctx = await resolveAccessContext()
+  if (!ctx) return null
 
-  const role = session.user.role as Role
-  const userEmployeeId = session.user.employeeId as string | undefined
+  const targetEmployee = await prisma.employee.findUnique({
+    where: { id: employeeId },
+    select: { id: true, departmentId: true },
+  })
+  if (!targetEmployee) return null
 
-  if (canEditOwnEmployeeData(role) && userEmployeeId && userEmployeeId !== employeeId) {
-    return null
-  }
-
-  if (canViewOwnDepartmentEmployees(role) && userEmployeeId) {
-    const user = await prisma.employee.findUnique({
-      where: { id: userEmployeeId },
-      select: { departmentId: true },
-    })
-    const targetEmployee = await prisma.employee.findUnique({
-      where: { id: employeeId },
-      select: { departmentId: true },
-    })
-    if (user?.departmentId !== targetEmployee?.departmentId) {
-      return null
-    }
-  }
-
-  return session
+  return canMutateEmployeeChildData(ctx.scope, targetEmployee) ? ctx.session : null
 }
 
 export async function createTraining(data: {
@@ -75,6 +63,7 @@ export async function createTraining(data: {
     })
     await logActivity({ userId: session.user.id, action: "CREATE", entity: "Training", entityId: training.id })
     revalidatePath(`/pegawai/${data.employeeId}`)
+    revalidatePath("/pelatihan")
     return { success: true, id: training.id }
   } catch (e: any) {
     return { error: "Failed to create training" }
@@ -91,15 +80,19 @@ export async function updateTraining(id: string, data: {
   certificateDate?: string
   certificateFile?: string
 }) {
-  const session = await checkPermission()
-  if (!session) return { error: "Anda tidak memiliki izin untuk mengedit pelatihan" }
+  const ctx = await resolveAccessContext()
+  if (!ctx) return { error: "Anda tidak memiliki izin untuk mengedit pelatihan" }
 
   try {
-    const existing = await prisma.training.findUnique({ where: { id } })
+    const existing = await prisma.training.findUnique({
+      where: { id },
+      include: { employee: { select: { id: true, departmentId: true } } },
+    })
     if (!existing) return { error: "Training not found" }
 
-    const accessCheck = await checkEmployeeAccess(existing.employeeId)
-    if (!accessCheck) return { error: "Anda tidak memiliki izin untuk mengedit pelatihan ini" }
+    if (!canMutateEmployeeChildData(ctx.scope, existing.employee)) {
+      return { error: "Anda tidak memiliki izin untuk mengedit pelatihan ini" }
+    }
 
     await prisma.training.update({
       where: { id },
@@ -114,8 +107,9 @@ export async function updateTraining(id: string, data: {
         certificateFile: data.certificateFile,
       },
     })
-    await logActivity({ userId: session.user.id, action: "UPDATE", entity: "Training", entityId: id })
+    await logActivity({ userId: ctx.session.user.id, action: "UPDATE", entity: "Training", entityId: id })
     revalidatePath(`/pegawai/${existing.employeeId}`)
+    revalidatePath("/pelatihan")
     return { success: true }
   } catch (e: any) {
     return { error: "Failed to update training" }
@@ -123,19 +117,24 @@ export async function updateTraining(id: string, data: {
 }
 
 export async function deleteTraining(id: string) {
-  const session = await checkPermission()
-  if (!session) return { error: "Anda tidak memiliki izin untuk menghapus pelatihan" }
+  const ctx = await resolveAccessContext()
+  if (!ctx) return { error: "Anda tidak memiliki izin untuk menghapus pelatihan" }
 
   try {
-    const existing = await prisma.training.findUnique({ where: { id } })
+    const existing = await prisma.training.findUnique({
+      where: { id },
+      include: { employee: { select: { id: true, departmentId: true } } },
+    })
     if (!existing) return { error: "Training not found" }
 
-    const accessCheck = await checkEmployeeAccess(existing.employeeId)
-    if (!accessCheck) return { error: "Anda tidak memiliki izin untuk menghapus pelatihan ini" }
+    if (!canMutateEmployeeChildData(ctx.scope, existing.employee)) {
+      return { error: "Anda tidak memiliki izin untuk menghapus pelatihan ini" }
+    }
 
     await prisma.training.delete({ where: { id } })
-    await logActivity({ userId: session.user.id, action: "DELETE", entity: "Training", entityId: id })
+    await logActivity({ userId: ctx.session.user.id, action: "DELETE", entity: "Training", entityId: id })
     revalidatePath(`/pegawai/${existing.employeeId}`)
+    revalidatePath("/pelatihan")
     return { success: true }
   } catch (e: any) {
     return { error: "Failed to delete training" }
@@ -143,14 +142,15 @@ export async function deleteTraining(id: string) {
 }
 
 export async function getTrainings(employeeId: string) {
-  const session = await checkPermission()
-  if (!session) return { error: "Anda tidak memiliki izin untuk melihat pelatihan" }
+  const ctx = await resolveAccessContext()
+  if (!ctx) return { error: "Anda tidak memiliki izin untuk melihat pelatihan" }
 
-  const role = session.user.role as Role
-  const userEmployeeId = session.user.employeeId as string | undefined
-
-  if (canEditOwnEmployeeData(role) && userEmployeeId && userEmployeeId !== employeeId) {
-    return { error: "Anda hanya dapat melihat pelatihan diri sendiri" }
+  const targetEmployee = await prisma.employee.findUnique({
+    where: { id: employeeId },
+    select: { id: true, departmentId: true },
+  })
+  if (!targetEmployee || !canAccessEmployeeRecord(ctx.scope, targetEmployee)) {
+    return { error: "Anda tidak memiliki izin untuk melihat pelatihan pegawai ini" }
   }
 
   try {
@@ -168,36 +168,11 @@ export async function getAllTrainings(filters?: {
   departmentId?: string
   employeeId?: string
 }) {
-  const session = await checkPermission()
-  if (!session) return { error: "Anda tidak memiliki izin untuk melihat pelatihan" }
-
-  const role = session.user.role as Role
-  const userEmployeeId = session.user.employeeId as string | undefined
+  const ctx = await resolveAccessContext()
+  if (!ctx) return { error: "Anda tidak memiliki izin untuk melihat pelatihan" }
 
   try {
-    const where: any = {}
-
-    if (canEditOwnEmployeeData(role) && userEmployeeId) {
-      where.employeeId = userEmployeeId
-    } else if (filters?.employeeId) {
-      where.employeeId = filters.employeeId
-    } else if (filters?.departmentId) {
-      where.employee = {
-        departmentId: filters.departmentId,
-      }
-    }
-
-    if (canViewOwnDepartmentEmployees(role) && userEmployeeId && !filters?.employeeId) {
-      const user = await prisma.employee.findUnique({
-        where: { id: userEmployeeId },
-        select: { departmentId: true },
-      })
-      if (user?.departmentId) {
-        where.employee = {
-          departmentId: user.departmentId,
-        }
-      }
-    }
+    const where = buildScopedEmployeeRelationWhere(ctx.scope, filters)
 
     const trainings = await prisma.training.findMany({
       where,

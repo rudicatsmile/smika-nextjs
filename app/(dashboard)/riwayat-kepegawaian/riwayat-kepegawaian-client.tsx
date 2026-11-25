@@ -4,8 +4,10 @@ import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from "@/components/ui/select"
+  EmployeeScopeFilterCard,
+  FilterDepartmentOption,
+  FilterEmployeeOption,
+} from "@/components/employee-scope-filter-card"
 import { Badge } from "@/components/ui/badge"
 import { ScrollText, Building2, User, Loader2, Calendar, Download } from "lucide-react"
 import { getAllEmploymentDocuments } from "@/server/actions/employment-document"
@@ -13,31 +15,18 @@ import { Role } from "@/app/generated/prisma/enums"
 import { format } from "date-fns"
 import { id } from "date-fns/locale"
 
-interface Department {
-  id: string
-  name: string
-}
-
-interface Employee {
-  id: string
-  fullName: string
-  employeeIdNumber: string
-  departmentId: string
-  department: { id: string; name: string }
-}
-
 interface EmploymentDocument {
   id: string
   letterName: string
-  date?: string
-  number?: string
-  description?: string
-  file?: string
+  date?: Date | string | null
+  number?: string | null
+  description?: string | null
+  file?: string | null
   employee: {
     id: string
     fullName: string
-    employeeIdNumber: string
-    department: { id: string; name: string }
+    employeeIdNumber?: string | null
+    department?: { id: string; name: string } | null
   }
 }
 
@@ -45,15 +34,22 @@ export function RiwayatKepegawaianClient({
   departments,
   employees,
   userRole,
+  isUnitScoped = false,
+  isSelfScoped = false,
+  lockedDepartmentName,
 }: {
-  departments: Department[]
-  employees: Employee[]
+  departments: FilterDepartmentOption[]
+  employees: FilterEmployeeOption[]
   userRole?: Role
+  isUnitScoped?: boolean
+  isSelfScoped?: boolean
+  lockedDepartmentName?: string | null
 }) {
-  const [selectedDepartment, setSelectedDepartment] = useState<string>("")
+  const [selectedDepartment, setSelectedDepartment] = useState<string>(
+    isUnitScoped && departments.length > 0 ? departments[0].id : ""
+  )
   const [selectedEmployee, setSelectedEmployee] = useState<string>("")
   const [documents, setDocuments] = useState<EmploymentDocument[]>([])
-  const [filteredEmployees, setFilteredEmployees] = useState<Employee[]>(employees)
   const [isPending, setIsPending] = useState(false)
   const [mounted, setMounted] = useState(false)
 
@@ -62,19 +58,10 @@ export function RiwayatKepegawaianClient({
   }, [])
 
   useEffect(() => {
-    if (userRole === "PIMPINAN" && departments.length > 0 && !selectedDepartment) {
+    if (isUnitScoped && departments.length > 0 && !selectedDepartment) {
       setSelectedDepartment(departments[0].id)
     }
-  }, [userRole, departments, selectedDepartment])
-
-  useEffect(() => {
-    if (selectedDepartment) {
-      setFilteredEmployees(employees.filter((e) => e.departmentId === selectedDepartment))
-      setSelectedEmployee("")
-    } else {
-      setFilteredEmployees(employees)
-    }
-  }, [selectedDepartment, employees])
+  }, [isUnitScoped, departments, selectedDepartment])
 
   const fetchDocuments = async () => {
     setIsPending(true)
@@ -83,7 +70,7 @@ export function RiwayatKepegawaianClient({
         departmentId: selectedDepartment || undefined,
         employeeId: selectedEmployee || undefined,
       })
-      if (result.success) setDocuments(result.data)
+      if (result.success && result.data) setDocuments(result.data)
     } finally {
       setIsPending(false)
     }
@@ -104,49 +91,17 @@ export function RiwayatKepegawaianClient({
         <h1 className="text-2xl font-bold">Riwayat Kepegawaian</h1>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Filter</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-wrap gap-4">
-            <div className="flex-1 min-w-[200px]">
-              <label className="text-sm font-medium mb-2 block">Departemen</label>
-              {userRole === "PIMPINAN" ? (
-                <div className="p-2 border rounded-md bg-muted/50 text-sm">
-                  {departments.length > 0 ? departments[0].name : "-"}
-                </div>
-              ) : (
-                <Select value={selectedDepartment || "all"} onValueChange={(v) => setSelectedDepartment(v === "all" ? "" : v)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Semua Departemen" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Semua Departemen</SelectItem>
-                    {departments.map((dept) => (
-                      <SelectItem key={dept.id} value={dept.id}>{dept.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
-            </div>
-            <div className="flex-1 min-w-[200px]">
-              <label className="text-sm font-medium mb-2 block">Pegawai</label>
-              <Select value={selectedEmployee || "all"} onValueChange={(v) => setSelectedEmployee(v === "all" ? "" : v)} disabled={!selectedDepartment && selectedDepartment !== ""}>
-                <SelectTrigger>
-                  <SelectValue placeholder={selectedDepartment ? "Pilih Pegawai" : "Semua Pegawai"} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Semua Pegawai</SelectItem>
-                  {filteredEmployees.map((emp) => (
-                    <SelectItem key={emp.id} value={emp.id}>{emp.fullName} ({emp.employeeIdNumber})</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      <EmployeeScopeFilterCard
+        departments={departments}
+        employees={employees}
+        selectedDepartment={selectedDepartment}
+        selectedEmployee={selectedEmployee}
+        onDepartmentChange={setSelectedDepartment}
+        onEmployeeChange={setSelectedEmployee}
+        isUnitScoped={isUnitScoped}
+        isSelfScoped={isSelfScoped}
+        lockedDepartmentName={lockedDepartmentName}
+      />
 
       <Card>
         <CardHeader>
@@ -173,15 +128,19 @@ export function RiwayatKepegawaianClient({
                           <Badge variant="outline">No. {doc.number}</Badge>
                         )}
                       </div>
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <User className="h-3.5 w-3.5" />
+                      <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+                        <User className="h-3.5 w-3.5 shrink-0" />
                         <span>{doc.employee.fullName}</span>
-                        <span className="text-muted-foreground/60">•</span>
-                        <span className="font-mono text-xs">{doc.employee.employeeIdNumber}</span>
+                        {doc.employee.employeeIdNumber && (
+                          <>
+                            <span className="text-muted-foreground/60">•</span>
+                            <span className="font-mono text-xs">{doc.employee.employeeIdNumber}</span>
+                          </>
+                        )}
                       </div>
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Building2 className="h-3.5 w-3.5" />
-                        <span>{doc.employee.department.name}</span>
+                        <Building2 className="h-3.5 w-3.5 shrink-0" />
+                        <span>{doc.employee.department?.name ?? "-"}</span>
                       </div>
                       {doc.date && (
                         <div className="flex items-center gap-1 text-sm text-muted-foreground">

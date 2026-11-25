@@ -2,10 +2,11 @@
 
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from "@/components/ui/select"
+  EmployeeScopeFilterCard,
+  FilterDepartmentOption,
+  FilterEmployeeOption,
+} from "@/components/employee-scope-filter-card"
 import { Badge } from "@/components/ui/badge"
 import { UsersIcon, Building2, User, Loader2, Heart, Baby, Calendar, MapPin } from "lucide-react"
 import { getAllChildren } from "@/server/actions/child"
@@ -14,50 +15,20 @@ import { format } from "date-fns"
 import { id } from "date-fns/locale"
 import { Role } from "@/app/generated/prisma/enums"
 
-interface Department {
+interface FamilyMember {
   id: string
   name: string
-}
-
-interface Employee {
-  id: string
-  fullName: string
-  employeeIdNumber: string
-  departmentId: string
-  department: { id: string; name: string }
-}
-
-interface Child {
-  id: string
-  name: string
-  placeOfBirth?: string
-  dateOfBirth?: string
-  gender?: string
-  relationship?: string
-  education?: { id: string; name: string; level: string }
-  occupation?: { id: string; name: string }
+  placeOfBirth?: string | null
+  dateOfBirth?: Date | string | null
+  gender?: string | null
+  relationship?: string | null
+  education?: { id: string; name: string; level: string } | null
+  occupation?: { id: string; name: string } | null
   employee: {
     id: string
     fullName: string
-    employeeIdNumber: string
-    department: { id: string; name: string }
-  }
-}
-
-interface Spouse {
-  id: string
-  name: string
-  placeOfBirth?: string
-  dateOfBirth?: string
-  gender?: string
-  relationship?: string
-  education?: { id: string; name: string; level: string }
-  occupation?: { id: string; name: string }
-  employee: {
-    id: string
-    fullName: string
-    employeeIdNumber: string
-    department: { id: string; name: string }
+    employeeIdNumber?: string | null
+    department?: { id: string; name: string } | null
   }
 }
 
@@ -66,20 +37,79 @@ const GENDER_LABELS: Record<string, string> = {
   PEREMPUAN: "Perempuan",
 }
 
+function FamilyMemberCard({ member }: { member: FamilyMember }) {
+  return (
+    <div className="border rounded-lg p-4 hover:bg-muted/50 transition-colors">
+      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+        <div className="flex-1 space-y-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="font-semibold">{member.name}</span>
+            {member.gender && (
+              <Badge variant="outline">{GENDER_LABELS[member.gender] || member.gender}</Badge>
+            )}
+            {member.relationship && (
+              <Badge variant="secondary">{member.relationship}</Badge>
+            )}
+          </div>
+          <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+            <User className="h-3.5 w-3.5 shrink-0" />
+            <span>{member.employee.fullName}</span>
+            {member.employee.employeeIdNumber && (
+              <>
+                <span className="text-muted-foreground/60">•</span>
+                <span className="font-mono text-xs">{member.employee.employeeIdNumber}</span>
+              </>
+            )}
+          </div>
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Building2 className="h-3.5 w-3.5 shrink-0" />
+            <span>{member.employee.department?.name ?? "-"}</span>
+          </div>
+          <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
+            {member.placeOfBirth && (
+              <div className="flex items-center gap-1 text-muted-foreground">
+                <MapPin className="h-3.5 w-3.5" />
+                <span>{member.placeOfBirth}</span>
+              </div>
+            )}
+            {member.dateOfBirth && (
+              <div className="flex items-center gap-1 text-muted-foreground">
+                <Calendar className="h-3.5 w-3.5" />
+                <span>{format(new Date(member.dateOfBirth), "d MMM yyyy", { locale: id })}</span>
+              </div>
+            )}
+          </div>
+          <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
+            {member.education && <div>Pendidikan: {member.education.name}</div>}
+            {member.occupation && <div>Pekerjaan: {member.occupation.name}</div>}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export function DataKeluargaClient({
   departments,
   employees,
   userRole,
+  isUnitScoped = false,
+  isSelfScoped = false,
+  lockedDepartmentName,
 }: {
-  departments: Department[]
-  employees: Employee[]
+  departments: FilterDepartmentOption[]
+  employees: FilterEmployeeOption[]
   userRole?: Role
+  isUnitScoped?: boolean
+  isSelfScoped?: boolean
+  lockedDepartmentName?: string | null
 }) {
-  const [selectedDepartment, setSelectedDepartment] = useState<string>("")
+  const [selectedDepartment, setSelectedDepartment] = useState<string>(
+    isUnitScoped && departments.length > 0 ? departments[0].id : ""
+  )
   const [selectedEmployee, setSelectedEmployee] = useState<string>("")
-  const [children, setChildren] = useState<Child[]>([])
-  const [spouses, setSpouses] = useState<Spouse[]>([])
-  const [filteredEmployees, setFilteredEmployees] = useState<Employee[]>(employees)
+  const [children, setChildren] = useState<FamilyMember[]>([])
+  const [spouses, setSpouses] = useState<FamilyMember[]>([])
   const [isPending, setIsPending] = useState(false)
   const [mounted, setMounted] = useState(false)
 
@@ -88,19 +118,10 @@ export function DataKeluargaClient({
   }, [])
 
   useEffect(() => {
-    if (userRole === "PIMPINAN" && departments.length > 0 && !selectedDepartment) {
+    if (isUnitScoped && departments.length > 0 && !selectedDepartment) {
       setSelectedDepartment(departments[0].id)
     }
-  }, [userRole, departments, selectedDepartment])
-
-  useEffect(() => {
-    if (selectedDepartment) {
-      setFilteredEmployees(employees.filter((e) => e.departmentId === selectedDepartment))
-      setSelectedEmployee("")
-    } else {
-      setFilteredEmployees(employees)
-    }
-  }, [selectedDepartment, employees])
+  }, [isUnitScoped, departments, selectedDepartment])
 
   const fetchFamilyData = async () => {
     setIsPending(true)
@@ -115,8 +136,8 @@ export function DataKeluargaClient({
           employeeId: selectedEmployee || undefined,
         }),
       ])
-      if (childrenResult.success) setChildren(childrenResult.data)
-      if (spousesResult.success) setSpouses(spousesResult.data)
+      if (childrenResult.success && childrenResult.data) setChildren(childrenResult.data)
+      if (spousesResult.success && spousesResult.data) setSpouses(spousesResult.data)
     } finally {
       setIsPending(false)
     }
@@ -137,49 +158,17 @@ export function DataKeluargaClient({
         <h1 className="text-2xl font-bold">Data Keluarga Pegawai</h1>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Filter</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-wrap gap-4">
-            <div className="flex-1 min-w-[200px]">
-              <label className="text-sm font-medium mb-2 block">Departemen</label>
-              {userRole === "PIMPINAN" ? (
-                <div className="p-2 border rounded-md bg-muted/50 text-sm">
-                  {departments.length > 0 ? departments[0].name : "-"}
-                </div>
-              ) : (
-                <Select value={selectedDepartment || "all"} onValueChange={(v) => setSelectedDepartment(v === "all" ? "" : v)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Semua Departemen" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Semua Departemen</SelectItem>
-                    {departments.map((dept) => (
-                      <SelectItem key={dept.id} value={dept.id}>{dept.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
-            </div>
-            <div className="flex-1 min-w-[200px]">
-              <label className="text-sm font-medium mb-2 block">Pegawai</label>
-              <Select value={selectedEmployee || "all"} onValueChange={(v) => setSelectedEmployee(v === "all" ? "" : v)} disabled={!selectedDepartment && selectedDepartment !== ""}>
-                <SelectTrigger>
-                  <SelectValue placeholder={selectedDepartment ? "Pilih Pegawai" : "Semua Pegawai"} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Semua Pegawai</SelectItem>
-                  {filteredEmployees.map((emp) => (
-                    <SelectItem key={emp.id} value={emp.id}>{emp.fullName} ({emp.employeeIdNumber})</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      <EmployeeScopeFilterCard
+        departments={departments}
+        employees={employees}
+        selectedDepartment={selectedDepartment}
+        selectedEmployee={selectedEmployee}
+        onDepartmentChange={setSelectedDepartment}
+        onEmployeeChange={setSelectedEmployee}
+        isUnitScoped={isUnitScoped}
+        isSelfScoped={isSelfScoped}
+        lockedDepartmentName={lockedDepartmentName}
+      />
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Card>
@@ -201,49 +190,7 @@ export function DataKeluargaClient({
             ) : (
               <div className="space-y-4">
                 {spouses.map((spouse) => (
-                  <div key={spouse.id} className="border rounded-lg p-4 hover:bg-muted/50 transition-colors">
-                    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-                      <div className="flex-1 space-y-2">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-semibold">{spouse.name}</span>
-                          {spouse.gender && (
-                            <Badge variant="outline">{GENDER_LABELS[spouse.gender] || spouse.gender}</Badge>
-                          )}
-                          {spouse.relationship && (
-                            <Badge variant="secondary">{spouse.relationship}</Badge>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <User className="h-3.5 w-3.5" />
-                          <span>{spouse.employee.fullName}</span>
-                          <span className="text-muted-foreground/60">•</span>
-                          <span className="font-mono text-xs">{spouse.employee.employeeIdNumber}</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <Building2 className="h-3.5 w-3.5" />
-                          <span>{spouse.employee.department.name}</span>
-                        </div>
-                        <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
-                          {spouse.placeOfBirth && (
-                            <div className="flex items-center gap-1 text-muted-foreground">
-                              <MapPin className="h-3.5 w-3.5" />
-                              <span>{spouse.placeOfBirth}</span>
-                            </div>
-                          )}
-                          {spouse.dateOfBirth && (
-                            <div className="flex items-center gap-1 text-muted-foreground">
-                              <Calendar className="h-3.5 w-3.5" />
-                              <span>{format(new Date(spouse.dateOfBirth), "d MMM yyyy", { locale: id })}</span>
-                            </div>
-                          )}
-                        </div>
-                        <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
-                          {spouse.education && <div>Pendidikan: {spouse.education.name}</div>}
-                          {spouse.occupation && <div>Pekerjaan: {spouse.occupation.name}</div>}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+                  <FamilyMemberCard key={spouse.id} member={spouse} />
                 ))}
               </div>
             )}
@@ -269,49 +216,7 @@ export function DataKeluargaClient({
             ) : (
               <div className="space-y-4">
                 {children.map((child) => (
-                  <div key={child.id} className="border rounded-lg p-4 hover:bg-muted/50 transition-colors">
-                    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-                      <div className="flex-1 space-y-2">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-semibold">{child.name}</span>
-                          {child.gender && (
-                            <Badge variant="outline">{GENDER_LABELS[child.gender] || child.gender}</Badge>
-                          )}
-                          {child.relationship && (
-                            <Badge variant="secondary">{child.relationship}</Badge>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <User className="h-3.5 w-3.5" />
-                          <span>{child.employee.fullName}</span>
-                          <span className="text-muted-foreground/60">•</span>
-                          <span className="font-mono text-xs">{child.employee.employeeIdNumber}</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <Building2 className="h-3.5 w-3.5" />
-                          <span>{child.employee.department.name}</span>
-                        </div>
-                        <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
-                          {child.placeOfBirth && (
-                            <div className="flex items-center gap-1 text-muted-foreground">
-                              <MapPin className="h-3.5 w-3.5" />
-                              <span>{child.placeOfBirth}</span>
-                            </div>
-                          )}
-                          {child.dateOfBirth && (
-                            <div className="flex items-center gap-1 text-muted-foreground">
-                              <Calendar className="h-3.5 w-3.5" />
-                              <span>{format(new Date(child.dateOfBirth), "d MMM yyyy", { locale: id })}</span>
-                            </div>
-                          )}
-                        </div>
-                        <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
-                          {child.education && <div>Pendidikan: {child.education.name}</div>}
-                          {child.occupation && <div>Pekerjaan: {child.occupation.name}</div>}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+                  <FamilyMemberCard key={child.id} member={child} />
                 ))}
               </div>
             )}

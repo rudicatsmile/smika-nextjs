@@ -29,6 +29,7 @@ interface ComboboxProps {
   value?: string
   onSelect: (value: string) => void
   placeholder?: string
+  searchPlaceholder?: string
   disabled?: boolean
 }
 
@@ -37,9 +38,14 @@ export function Combobox({
   value,
   onSelect,
   placeholder = "Pilih opsi...",
+  searchPlaceholder = "Cari...",
   disabled = false,
 }: ComboboxProps) {
   const [open, setOpen] = React.useState(false)
+  const selectedLabel =
+    value !== undefined
+      ? options.find((option) => option.value === value)?.label
+      : undefined
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -48,18 +54,19 @@ export function Combobox({
           variant="outline"
           role="combobox"
           aria-expanded={open}
-          className="w-full justify-between"
+          className="w-full justify-between font-normal"
           disabled={disabled}
         >
-          {value
-            ? options.find((option) => option.value === value)?.label
-            : placeholder}
+          <span className="truncate">{selectedLabel || placeholder}</span>
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-full p-0">
+      <PopoverContent
+        className="w-[var(--radix-popover-trigger-width)] min-w-[220px] max-w-[calc(100vw-2rem)] p-0"
+        align="start"
+      >
         <Command>
-          <CommandInput placeholder="Cari..." className="h-9" />
+          <CommandInput placeholder={searchPlaceholder} className="h-9" />
           <CommandList>
             <CommandEmpty>Tidak ada hasil.</CommandEmpty>
             <CommandGroup>
@@ -75,7 +82,7 @@ export function Combobox({
                   {option.label}
                   <Check
                     className={cn(
-                      "ml-auto h-4 w-4",
+                      "ml-auto h-4 w-4 shrink-0",
                       value === option.value ? "opacity-100" : "opacity-0"
                     )}
                   />

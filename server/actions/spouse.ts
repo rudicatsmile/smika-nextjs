@@ -3,45 +3,33 @@
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
-import { canManageEmployees, canViewOwnDepartmentEmployees, canEditOwnEmployeeData } from "@/lib/rbac"
-import { Role } from "@/app/generated/prisma/enums"
+import {
+  resolveEmployeeAccessScope,
+  canAccessEmployeeRecord,
+  canMutateEmployeeChildData,
+  buildScopedEmployeeRelationWhere,
+} from "@/lib/employee-scope"
 import { revalidatePath } from "next/cache"
 import { logActivity } from "@/lib/activity-log"
 
-async function checkPermission() {
+async function resolveAccessContext() {
   const session = await getServerSession(authOptions)
   if (!session?.user?.id) return null
-  const role = session.user.role as Role
-  if (!canManageEmployees(role) && !canViewOwnDepartmentEmployees(role) && !canEditOwnEmployeeData(role)) return null
-  return session
+  const scope = await resolveEmployeeAccessScope(session.user)
+  return { session, scope }
 }
 
 async function checkEmployeeAccess(employeeId: string) {
-  const session = await checkPermission()
-  if (!session) return null
+  const ctx = await resolveAccessContext()
+  if (!ctx) return null
 
-  const role = session.user.role as Role
-  const userEmployeeId = session.user.employeeId as string | undefined
+  const targetEmployee = await prisma.employee.findUnique({
+    where: { id: employeeId },
+    select: { id: true, departmentId: true },
+  })
+  if (!targetEmployee) return null
 
-  if (canEditOwnEmployeeData(role) && userEmployeeId && userEmployeeId !== employeeId) {
-    return null
-  }
-
-  if (canViewOwnDepartmentEmployees(role) && userEmployeeId) {
-    const user = await prisma.employee.findUnique({
-      where: { id: userEmployeeId },
-      select: { departmentId: true },
-    })
-    const targetEmployee = await prisma.employee.findUnique({
-      where: { id: employeeId },
-      select: { departmentId: true },
-    })
-    if (user?.departmentId !== targetEmployee?.departmentId) {
-      return null
-    }
-  }
-
-  return session
+  return canMutateEmployeeChildData(ctx.scope, targetEmployee) ? ctx.session : null
 }
 
 export async function createSpouse(data: {
@@ -73,6 +61,7 @@ export async function createSpouse(data: {
     })
     await logActivity({ userId: session.user.id, action: "CREATE", entity: "Spouse", entityId: spouse.id })
     revalidatePath(`/pegawai/${data.employeeId}`)
+    revalidatePath("/data-keluarga")
     return { success: true, id: spouse.id }
   } catch (e: any) {
     return { error: "Failed to create spouse" }
@@ -88,15 +77,19 @@ export async function updateSpouse(id: string, data: {
   educationId?: string
   occupationId?: string
 }) {
-  const session = await checkPermission()
-  if (!session) return { error: "Anda tidak memiliki izin untuk mengedit data pasangan" }
+  const ctx = await resolveAccessContext()
+  if (!ctx) return { error: "Anda tidak memiliki izin untuk mengedit data pasangan" }
 
   try {
-    const existing = await prisma.spouse.findUnique({ where: { id } })
+    const existing = await prisma.spouse.findUnique({
+      where: { id },
+      include: { employee: { select: { id: true, departmentId: true } } },
+    })
     if (!existing) return { error: "Spouse not found" }
 
-    const accessCheck = await checkEmployeeAccess(existing.employeeId)
-    if (!accessCheck) return { error: "Anda tidak memiliki izin untuk mengedit data pasangan ini" }
+    if (!canMutateEmployeeChildData(ctx.scope, existing.employee)) {
+      return { error: "Anda tidak memiliki izin untuk mengedit data pasangan ini" }
+    }
 
     await prisma.spouse.update({
       where: { id },
@@ -110,8 +103,9 @@ export async function updateSpouse(id: string, data: {
         occupationId: data.occupationId,
       },
     })
-    await logActivity({ userId: session.user.id, action: "UPDATE", entity: "Spouse", entityId: id })
+    await logActivity({ userId: ctx.session.user.id, action: "UPDATE", entity: "Spouse", entityId: id })
     revalidatePath(`/pegawai/${existing.employeeId}`)
+    revalidatePath("/data-keluarga")
     return { success: true }
   } catch (e: any) {
     return { error: "Failed to update spouse" }
@@ -119,19 +113,24 @@ export async function updateSpouse(id: string, data: {
 }
 
 export async function deleteSpouse(id: string) {
-  const session = await checkPermission()
-  if (!session) return { error: "Anda tidak memiliki izin untuk menghapus data pasangan" }
+  const ctx = await resolveAccessContext()
+  if (!ctx) return { error: "Anda tidak memiliki izin untuk menghapus data pasangan" }
 
   try {
-    const existing = await prisma.spouse.findUnique({ where: { id } })
+    const existing = await prisma.spouse.findUnique({
+      where: { id },
+      include: { employee: { select: { id: true, departmentId: true } } },
+    })
     if (!existing) return { error: "Spouse not found" }
 
-    const accessCheck = await checkEmployeeAccess(existing.employeeId)
-    if (!accessCheck) return { error: "Anda tidak memiliki izin untuk menghapus data pasangan ini" }
+    if (!canMutateEmployeeChildData(ctx.scope, existing.employee)) {
+      return { error: "Anda tidak memiliki izin untuk menghapus data pasangan ini" }
+    }
 
     await prisma.spouse.delete({ where: { id } })
-    await logActivity({ userId: session.user.id, action: "DELETE", entity: "Spouse", entityId: id })
+    await logActivity({ userId: ctx.session.user.id, action: "DELETE", entity: "Spouse", entityId: id })
     revalidatePath(`/pegawai/${existing.employeeId}`)
+    revalidatePath("/data-keluarga")
     return { success: true }
   } catch (e: any) {
     return { error: "Failed to delete spouse" }
@@ -139,14 +138,15 @@ export async function deleteSpouse(id: string) {
 }
 
 export async function getSpouses(employeeId: string) {
-  const session = await checkPermission()
-  if (!session) return { error: "Anda tidak memiliki izin untuk melihat data pasangan" }
+  const ctx = await resolveAccessContext()
+  if (!ctx) return { error: "Anda tidak memiliki izin untuk melihat data pasangan" }
 
-  const role = session.user.role as Role
-  const userEmployeeId = session.user.employeeId as string | undefined
-
-  if (canEditOwnEmployeeData(role) && userEmployeeId && userEmployeeId !== employeeId) {
-    return { error: "Anda hanya dapat melihat data pasangan diri sendiri" }
+  const targetEmployee = await prisma.employee.findUnique({
+    where: { id: employeeId },
+    select: { id: true, departmentId: true },
+  })
+  if (!targetEmployee || !canAccessEmployeeRecord(ctx.scope, targetEmployee)) {
+    return { error: "Anda tidak memiliki izin untuk melihat data pasangan pegawai ini" }
   }
 
   try {
@@ -165,36 +165,11 @@ export async function getAllSpouses(filters?: {
   departmentId?: string
   employeeId?: string
 }) {
-  const session = await checkPermission()
-  if (!session) return { error: "Anda tidak memiliki izin untuk melihat data pasangan" }
-
-  const role = session.user.role as Role
-  const userEmployeeId = session.user.employeeId as string | undefined
+  const ctx = await resolveAccessContext()
+  if (!ctx) return { error: "Anda tidak memiliki izin untuk melihat data pasangan" }
 
   try {
-    const where: any = {}
-
-    if (canEditOwnEmployeeData(role) && userEmployeeId) {
-      where.employeeId = userEmployeeId
-    } else if (filters?.employeeId) {
-      where.employeeId = filters.employeeId
-    } else if (filters?.departmentId) {
-      where.employee = {
-        departmentId: filters.departmentId,
-      }
-    }
-
-    if (canViewOwnDepartmentEmployees(role) && userEmployeeId && !filters?.employeeId) {
-      const user = await prisma.employee.findUnique({
-        where: { id: userEmployeeId },
-        select: { departmentId: true },
-      })
-      if (user?.departmentId) {
-        where.employee = {
-          departmentId: user.departmentId,
-        }
-      }
-    }
+    const where = buildScopedEmployeeRelationWhere(ctx.scope, filters)
 
     const spouses = await prisma.spouse.findMany({
       where,

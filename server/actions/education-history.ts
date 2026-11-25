@@ -3,48 +3,36 @@
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
-import { canManageEmployees, canViewOwnDepartmentEmployees, canEditOwnEmployeeData } from "@/lib/rbac"
-import { Role } from "@/app/generated/prisma/enums"
+import {
+  resolveEmployeeAccessScope,
+  canAccessEmployeeRecord,
+  canMutateEmployeeRecord,
+} from "@/lib/employee-scope"
 import { revalidatePath } from "next/cache"
 import { logActivity } from "@/lib/activity-log"
 
-async function checkPermission() {
+async function resolveAccessContext() {
   const session = await getServerSession(authOptions)
   if (!session?.user?.id) return null
-  const role = session.user.role as Role
-  // Allow PIMPINAN and PEGAWAI in addition to SUPER_ADMIN and HR
-  if (!canManageEmployees(role) && !canViewOwnDepartmentEmployees(role) && !canEditOwnEmployeeData(role)) return null
-  return session
+  const scope = await resolveEmployeeAccessScope(session.user)
+  return { session, scope }
 }
 
 async function checkEmployeeAccess(employeeId: string) {
-  const session = await checkPermission()
-  if (!session) return null
+  const ctx = await resolveAccessContext()
+  if (!ctx) return null
 
-  const role = session.user.role as Role
-  const userEmployeeId = session.user.employeeId as string | undefined
+  const targetEmployee = await prisma.employee.findUnique({
+    where: { id: employeeId },
+    select: { id: true, departmentId: true },
+  })
+  if (!targetEmployee) return null
 
-  // PEGAWAI can only access their own data
-  if (canEditOwnEmployeeData(role) && userEmployeeId && userEmployeeId !== employeeId) {
-    return null
-  }
+  const canMutate =
+    canMutateEmployeeRecord(ctx.scope, targetEmployee) ||
+    (ctx.scope.isSelfScoped && ctx.scope.selfEmployeeId === targetEmployee.id)
 
-  // PIMPINAN can only access data from their own department
-  if (canViewOwnDepartmentEmployees(role) && userEmployeeId) {
-    const user = await prisma.employee.findUnique({
-      where: { id: userEmployeeId },
-      select: { departmentId: true },
-    })
-    const targetEmployee = await prisma.employee.findUnique({
-      where: { id: employeeId },
-      select: { departmentId: true },
-    })
-    if (user?.departmentId !== targetEmployee?.departmentId) {
-      return null
-    }
-  }
-
-  return session
+  return canMutate ? ctx.session : null
 }
 
 export async function createEducationHistory(data: {
@@ -78,6 +66,7 @@ export async function createEducationHistory(data: {
     })
     await logActivity({ userId: session.user.id, action: "CREATE", entity: "EducationHistory", entityId: eduHistory.id })
     revalidatePath(`/pegawai/${data.employeeId}`)
+    revalidatePath("/riwayat-pendidikan")
     return { success: true, id: eduHistory.id }
   } catch (e: any) {
     return { error: "Failed to create education history" }
@@ -94,15 +83,22 @@ export async function updateEducationHistory(id: string, data: {
   gpa?: number
   isGraduated?: boolean
 }) {
-  const session = await checkPermission()
-  if (!session) return { error: "Anda tidak memiliki izin untuk mengedit riwayat pendidikan" }
+  const ctx = await resolveAccessContext()
+  if (!ctx) return { error: "Anda tidak memiliki izin untuk mengedit riwayat pendidikan" }
 
   try {
-    const existing = await prisma.educationHistory.findUnique({ where: { id } })
+    const existing = await prisma.educationHistory.findUnique({
+      where: { id },
+      include: { employee: { select: { id: true, departmentId: true } } },
+    })
     if (!existing) return { error: "Education history not found" }
 
-    const accessCheck = await checkEmployeeAccess(existing.employeeId)
-    if (!accessCheck) return { error: "Anda tidak memiliki izin untuk mengedit riwayat pendidikan ini" }
+    const canMutate =
+      canMutateEmployeeRecord(ctx.scope, existing.employee) ||
+      (ctx.scope.isSelfScoped && ctx.scope.selfEmployeeId === existing.employeeId)
+    if (!canMutate) {
+      return { error: "Anda tidak memiliki izin untuk mengedit riwayat pendidikan ini" }
+    }
 
     await prisma.educationHistory.update({
       where: { id },
@@ -117,8 +113,9 @@ export async function updateEducationHistory(id: string, data: {
         isGraduated: data.isGraduated,
       },
     })
-    await logActivity({ userId: session.user.id, action: "UPDATE", entity: "EducationHistory", entityId: id })
+    await logActivity({ userId: ctx.session.user.id, action: "UPDATE", entity: "EducationHistory", entityId: id })
     revalidatePath(`/pegawai/${existing.employeeId}`)
+    revalidatePath("/riwayat-pendidikan")
     return { success: true }
   } catch (e: any) {
     return { error: "Failed to update education history" }
@@ -126,19 +123,27 @@ export async function updateEducationHistory(id: string, data: {
 }
 
 export async function deleteEducationHistory(id: string) {
-  const session = await checkPermission()
-  if (!session) return { error: "Anda tidak memiliki izin untuk menghapus riwayat pendidikan" }
+  const ctx = await resolveAccessContext()
+  if (!ctx) return { error: "Anda tidak memiliki izin untuk menghapus riwayat pendidikan" }
 
   try {
-    const existing = await prisma.educationHistory.findUnique({ where: { id } })
+    const existing = await prisma.educationHistory.findUnique({
+      where: { id },
+      include: { employee: { select: { id: true, departmentId: true } } },
+    })
     if (!existing) return { error: "Education history not found" }
 
-    const accessCheck = await checkEmployeeAccess(existing.employeeId)
-    if (!accessCheck) return { error: "Anda tidak memiliki izin untuk menghapus riwayat pendidikan ini" }
+    const canMutate =
+      canMutateEmployeeRecord(ctx.scope, existing.employee) ||
+      (ctx.scope.isSelfScoped && ctx.scope.selfEmployeeId === existing.employeeId)
+    if (!canMutate) {
+      return { error: "Anda tidak memiliki izin untuk menghapus riwayat pendidikan ini" }
+    }
 
     await prisma.educationHistory.delete({ where: { id } })
-    await logActivity({ userId: session.user.id, action: "DELETE", entity: "EducationHistory", entityId: id })
+    await logActivity({ userId: ctx.session.user.id, action: "DELETE", entity: "EducationHistory", entityId: id })
     revalidatePath(`/pegawai/${existing.employeeId}`)
+    revalidatePath("/riwayat-pendidikan")
     return { success: true }
   } catch (e: any) {
     return { error: "Failed to delete education history" }
@@ -146,22 +151,22 @@ export async function deleteEducationHistory(id: string) {
 }
 
 export async function getEducationHistories(employeeId: string) {
-  const session = await checkPermission()
-  if (!session) return { error: "Anda tidak memiliki izin untuk melihat riwayat pendidikan" }
+  const ctx = await resolveAccessContext()
+  if (!ctx) return { error: "Anda tidak memiliki izin untuk melihat riwayat pendidikan" }
 
-  const role = session.user.role as Role
-  const userEmployeeId = session.user.employeeId as string | undefined
-
-  // PEGAWAI can only view their own data
-  if (canEditOwnEmployeeData(role) && userEmployeeId && userEmployeeId !== employeeId) {
-    return { error: "Anda hanya dapat melihat riwayat pendidikan diri sendiri" }
+  const targetEmployee = await prisma.employee.findUnique({
+    where: { id: employeeId },
+    select: { id: true, departmentId: true },
+  })
+  if (!targetEmployee || !canAccessEmployeeRecord(ctx.scope, targetEmployee)) {
+    return { error: "Anda tidak memiliki izin untuk melihat riwayat pendidikan pegawai ini" }
   }
 
   try {
     const histories = await prisma.educationHistory.findMany({
       where: { employeeId },
       include: { education: true },
-      orderBy: { graduationYear: 'desc' },
+      orderBy: { graduationYear: "desc" },
     })
     return { success: true, data: histories }
   } catch (e: any) {
@@ -173,37 +178,35 @@ export async function getAllEducationHistories(filters?: {
   departmentId?: string
   employeeId?: string
 }) {
-  const session = await checkPermission()
-  if (!session) return { error: "Anda tidak memiliki izin untuk melihat riwayat pendidikan" }
+  const ctx = await resolveAccessContext()
+  if (!ctx) return { error: "Anda tidak memiliki izin untuk melihat riwayat pendidikan" }
 
-  const role = session.user.role as Role
-  const userEmployeeId = session.user.employeeId as string | undefined
+  const { scope } = ctx
 
   try {
     const where: any = {}
 
-    // PEGAWAI can only see their own data
-    if (canEditOwnEmployeeData(role) && userEmployeeId) {
-      where.employeeId = userEmployeeId
-    } else if (filters?.employeeId) {
-      where.employeeId = filters.employeeId
-    } else if (filters?.departmentId) {
-      where.employee = {
-        departmentId: filters.departmentId,
-      }
-    }
-
-    // PIMPINAN can only see data from their own department
-    if (canViewOwnDepartmentEmployees(role) && userEmployeeId && !filters?.employeeId) {
-      const user = await prisma.employee.findUnique({
-        where: { id: userEmployeeId },
-        select: { departmentId: true },
-      })
-      if (user?.departmentId) {
-        where.employee = {
-          departmentId: user.departmentId,
+    if (scope.isSelfScoped) {
+      where.employeeId = scope.selfEmployeeId ?? "__NO_EMPLOYEE__"
+    } else if (scope.isUnitScoped) {
+      if (!scope.unitDepartmentId) {
+        where.employeeId = "__NO_EMPLOYEE__"
+      } else {
+        where.employee = { departmentId: scope.unitDepartmentId }
+        if (filters?.employeeId) {
+          where.employeeId = filters.employeeId
         }
       }
+    } else if (scope.canViewAllEmployees) {
+      if (filters?.employeeId) {
+        where.employeeId = filters.employeeId
+      } else if (filters?.departmentId) {
+        where.employee = {
+          departmentId: filters.departmentId,
+        }
+      }
+    } else {
+      where.employeeId = "__NO_EMPLOYEE__"
     }
 
     const histories = await prisma.educationHistory.findMany({
@@ -224,7 +227,7 @@ export async function getAllEducationHistories(filters?: {
           },
         },
       },
-      orderBy: { graduationYear: 'desc' },
+      orderBy: [{ graduationYear: "desc" }, { createdAt: "desc" }],
     })
     return { success: true, data: histories }
   } catch (e: any) {
