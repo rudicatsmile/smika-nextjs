@@ -76,6 +76,7 @@ interface PositionDepartment {
 
 interface EmployeeFormProps {
   initialData?: Partial<FormValues & { id: string }>
+  lockedDepartmentId?: string | null
   departments: MasterOption[]
   positions: MasterOption[]
   positionDepartments: PositionDepartment[]
@@ -102,7 +103,7 @@ function FormField({
 }
 
 export function EmployeeForm({
-  initialData, departments, positions, positionDepartments, religions, bloodTypes, employmentStatuses, educations, subjects, mode,
+  initialData, lockedDepartmentId, departments, positions, positionDepartments, religions, bloodTypes, employmentStatuses, educations, subjects, mode,
 }: EmployeeFormProps) {
   const router = useRouter()
   const { data: session } = useSession()
@@ -142,6 +143,7 @@ export function EmployeeForm({
     resolver: zodResolver(schema) as any,
     defaultValues: {
       ...initialData,
+      departmentId: initialData?.departmentId ?? lockedDepartmentId ?? undefined,
       employmentStatus: (initialData?.employmentStatus as any) ?? "AKTIF",
       isBlocked: initialData?.isBlocked ?? false,
       dateOfBirth: toDateStr(initialData?.dateOfBirth as any),
@@ -167,7 +169,10 @@ export function EmployeeForm({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const onSubmit = (data: any) => {
     startTransition(async () => {
-      const payload = data as EmployeeFormData
+      const payload = {
+        ...(data as EmployeeFormData),
+        ...(lockedDepartmentId ? { departmentId: lockedDepartmentId } : {}),
+      }
       const result = mode === "create"
         ? await createEmployee(payload)
         : await updateEmployee(initialData!.id!, payload)
@@ -371,7 +376,7 @@ export function EmployeeForm({
                     <Select
                       value={watch("departmentId") ?? ""}
                       onValueChange={(v) => setValue("departmentId", v || null)}
-                      disabled={!canEditEmploymentData}
+                      disabled={!canEditEmploymentData || Boolean(lockedDepartmentId)}
                     >
                       <SelectTrigger><SelectValue placeholder="Pilih unit" /></SelectTrigger>
                       <SelectContent>

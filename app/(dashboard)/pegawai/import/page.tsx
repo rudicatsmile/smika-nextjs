@@ -2,6 +2,7 @@
 
 import { useState, useRef } from "react"
 import { useRouter } from "next/navigation"
+import { useSession } from "next-auth/react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -22,10 +23,30 @@ interface PreviewRow {
 
 export default function ImportPegawaiPage() {
   const router = useRouter()
+  const { data: session } = useSession()
+  const role = session?.user?.role
   const fileRef = useRef<HTMLInputElement>(null)
   const [preview, setPreview] = useState<PreviewRow[]>([])
   const [file, setFile] = useState<File | null>(null)
   const [importing, setImporting] = useState(false)
+
+  if (role && role !== "SUPER_ADMIN" && role !== "HR") {
+    return (
+      <div className="max-w-xl space-y-4">
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" size="icon" asChild>
+            <Link href="/pegawai"><ArrowLeft className="h-4 w-4" /></Link>
+          </Button>
+          <h1 className="text-xl font-bold">Import Data Pegawai</h1>
+        </div>
+        <Card>
+          <CardContent className="py-8 text-center text-sm text-muted-foreground">
+            Anda tidak memiliki izin untuk mengimpor data pegawai.
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0]

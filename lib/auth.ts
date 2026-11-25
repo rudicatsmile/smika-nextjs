@@ -15,6 +15,7 @@ declare module "next-auth" {
       role: Role
       nip?: string | null
       employeeId?: string | null
+      departmentId?: string | null
     }
   }
   interface User {
@@ -22,6 +23,7 @@ declare module "next-auth" {
     role: Role
     nip?: string | null
     employeeId?: string | null
+    departmentId?: string | null
   }
 }
 
@@ -31,6 +33,7 @@ declare module "next-auth/jwt" {
     role: Role
     nip?: string | null
     employeeId?: string | null
+    departmentId?: string | null
   }
 }
 
@@ -110,6 +113,7 @@ export const authOptions: NextAuthOptions = {
             role: user.role,
             nip: user.nip,
             employeeId: user.employeeId,
+            departmentId: user.departmentId,
           }
         } catch (error) {
           console.error("Database connection error in authorize():", error)
@@ -125,6 +129,7 @@ export const authOptions: NextAuthOptions = {
         token.role = user.role
         token.nip = user.nip
         token.employeeId = user.employeeId
+        token.departmentId = user.departmentId
       }
       return token
     },
@@ -134,6 +139,7 @@ export const authOptions: NextAuthOptions = {
         session.user.role = token.role as Role
         session.user.nip = token.nip as string | null
         session.user.employeeId = token.employeeId as string | null
+        session.user.departmentId = (token.departmentId as string | null | undefined) ?? null
       }
       return session
     },

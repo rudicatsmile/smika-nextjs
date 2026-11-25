@@ -31,8 +31,9 @@ export function canViewEmployeeList(role: Role): boolean {
   return role === "SUPER_ADMIN" || role === "HR" || role === "PIMPINAN" || role === "PEMILIK_YAYASAN_1" || role === "PEMILIK_YAYASAN_2" || role === "PEGAWAI"
 }
 
-export function canViewOwnDepartmentEmployees(role: Role): boolean {
-  return role === "PIMPINAN"
+export function canViewOwnDepartmentEmployees(_role: Role): boolean {
+  // PIMPINAN kini melihat semua pegawai; pembatasan per-unit hanya berlaku bagi Admin Unit Lembaga (via lib/employee-scope.ts)
+  return false
 }
 
 export function canEditOwnEmployeeData(role: Role): boolean {

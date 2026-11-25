@@ -3,7 +3,8 @@ import { prisma } from "@/lib/prisma"
 import * as XLSX from "xlsx"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
-import { canViewEmployeeList, canViewOwnDepartmentEmployees, canEditOwnEmployeeData } from "@/lib/rbac"
+import { canViewEmployeeList, canEditOwnEmployeeData } from "@/lib/rbac"
+import { resolveEmployeeAccessScope } from "@/lib/employee-scope"
 import { Role } from "@/app/generated/prisma/enums"
 
 export async function GET() {
@@ -11,30 +12,14 @@ export async function GET() {
   if (!session) return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
 
   const role = session.user.role as Role
-  const userEmployeeId = session.user.employeeId as string | undefined
 
   // Check permission
   if (!canViewEmployeeList(role) && !canEditOwnEmployeeData(role)) {
     return NextResponse.json({ message: "Forbidden" }, { status: 403 })
   }
 
-  let where: any = {}
-
-  // PIMPINAN can only export their own department
-  if (canViewOwnDepartmentEmployees(role) && userEmployeeId) {
-    const user = await prisma.employee.findUnique({
-      where: { id: userEmployeeId },
-      select: { departmentId: true },
-    })
-    if (user?.departmentId) {
-      where.departmentId = user.departmentId
-    }
-  }
-
-  // PEGAWAI can only export their own data
-  if (canEditOwnEmployeeData(role) && userEmployeeId) {
-    where.id = userEmployeeId
-  }
+  const scope = await resolveEmployeeAccessScope(session.user)
+  const where = scope.employeeWhereFilter
 
   const employees = await prisma.employee.findMany({
     where,

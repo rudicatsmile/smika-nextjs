@@ -48,17 +48,19 @@ enum DepartmentType {
 }
 
 model User {
-  id           String    @id @default(cuid())
+  id           String      @id @default(cuid())
   name         String
-  email        String?   @unique
-  nip          String?   @unique
+  email        String?     @unique
+  nip          String?     @unique
   passwordHash String
-  role         Role      @default(PEGAWAI)
-  isActive     Boolean   @default(true)
-  employeeId   String?   @unique
-  employee     Employee? @relation(fields: [employeeId], references: [id])
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  role         Role        @default(PEGAWAI)
+  isActive     Boolean     @default(true)
+  employeeId   String?     @unique
+  employee     Employee?   @relation(fields: [employeeId], references: [id])
+  departmentId String?
+  department   Department? @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
 
   passwordResetTokens PasswordResetToken[]
   activityLogs        ActivityLog[]
@@ -97,6 +99,7 @@ model Department {
   updatedAt     DateTime           @updatedAt
   employees     Employee[]
   positions     PositionDepartment[]
+  users         User[]
 }
 
 model Position {

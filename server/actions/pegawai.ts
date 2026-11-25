@@ -6,8 +6,7 @@ import { prisma } from "@/lib/prisma"
 import { logActivity } from "@/lib/activity-log"
 import { revalidatePath } from "next/cache"
 import { z } from "zod"
-import { canManageEmployees, canViewAll, canViewOwnDepartmentEmployees, canEditOwnEmployeeData } from "@/lib/rbac"
-import { Role } from "@/app/generated/prisma/enums"
+import { resolveEmployeeAccessScope, canMutateEmployeeRecord } from "@/lib/employee-scope"
 
 const employeeSchema = z.object({
   employeeIdNumber: z.string().min(1, "NIP wajib diisi"),
@@ -64,19 +63,26 @@ export async function createEmployee(data: EmployeeFormData) {
   const session = await getServerSession(authOptions)
   if (!session?.user?.id) return { error: "Tidak terautentikasi" }
 
-  const role = session.user.role as Role
-  if (!canManageEmployees(role)) return { error: "Anda tidak memiliki izin untuk menambah pegawai" }
+  const scope = await resolveEmployeeAccessScope(session.user)
+  if (!scope.canMutateEmployees) return { error: "Anda tidak memiliki izin untuk menambah pegawai" }
 
   const parsed = employeeSchema.safeParse(data)
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Data tidak valid" }
 
+  const safeData = {
+    ...parsed.data,
+    ...(scope.isUnitScoped && scope.unitDepartmentId
+      ? { departmentId: scope.unitDepartmentId }
+      : {}),
+  }
+
   try {
     const employee = await prisma.employee.create({
       data: {
-        ...parsed.data,
-        email: parsed.data.email || null,
-        dateOfBirth: toDate(parsed.data.dateOfBirth),
-        joinDate: toDate(parsed.data.joinDate),
+        ...safeData,
+        email: safeData.email || null,
+        dateOfBirth: toDate(safeData.dateOfBirth),
+        joinDate: toDate(safeData.joinDate),
       },
     })
     await logActivity({
@@ -101,28 +107,39 @@ export async function updateEmployee(id: string, data: EmployeeFormData) {
   const session = await getServerSession(authOptions)
   if (!session?.user?.id) return { error: "Tidak terautentikasi" }
 
-  const role = session.user.role as Role
+  const scope = await resolveEmployeeAccessScope(session.user)
+  const existing = await prisma.employee.findUnique({
+    where: { id },
+    select: { id: true, departmentId: true },
+  })
+  if (!existing) return { error: "Data pegawai tidak ditemukan" }
 
-  // PEGAWAI can only edit their own data
-  if (canEditOwnEmployeeData(role)) {
-    if (session.user.employeeId !== id) {
+  if (scope.isSelfScoped) {
+    if (scope.selfEmployeeId !== id) {
       return { error: "Anda hanya dapat mengedit data diri sendiri" }
     }
-  } else if (!canManageEmployees(role)) {
-    return { error: "Anda tidak memiliki izin untuk mengedit pegawai" }
+  } else if (!canMutateEmployeeRecord(scope, existing)) {
+    return { error: "Anda tidak memiliki izin untuk mengedit pegawai di unit ini" }
   }
 
   const parsed = employeeSchema.safeParse(data)
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Data tidak valid" }
 
+  const safeData = {
+    ...parsed.data,
+    ...(scope.isUnitScoped && scope.unitDepartmentId
+      ? { departmentId: scope.unitDepartmentId }
+      : {}),
+  }
+
   try {
     const employee = await prisma.employee.update({
       where: { id },
       data: {
-        ...parsed.data,
-        email: parsed.data.email || null,
-        dateOfBirth: toDate(parsed.data.dateOfBirth),
-        joinDate: toDate(parsed.data.joinDate),
+        ...safeData,
+        email: safeData.email || null,
+        dateOfBirth: toDate(safeData.dateOfBirth),
+        joinDate: toDate(safeData.joinDate),
       },
     })
     await logActivity({
@@ -148,8 +165,15 @@ export async function deleteEmployee(id: string) {
   const session = await getServerSession(authOptions)
   if (!session?.user?.id) return { error: "Tidak terautentikasi" }
 
-  const role = session.user.role as Role
-  if (!canManageEmployees(role)) return { error: "Anda tidak memiliki izin untuk menghapus pegawai" }
+  const scope = await resolveEmployeeAccessScope(session.user)
+  const existing = await prisma.employee.findUnique({
+    where: { id },
+    select: { id: true, departmentId: true, fullName: true },
+  })
+  if (!existing) return { error: "Data pegawai tidak ditemukan" }
+  if (!canMutateEmployeeRecord(scope, existing)) {
+    return { error: "Anda tidak memiliki izin untuk menghapus pegawai ini" }
+  }
 
   try {
     const employee = await prisma.employee.delete({ where: { id } })
@@ -172,8 +196,15 @@ export async function blockEmployee(id: string, blocked: boolean) {
   const session = await getServerSession(authOptions)
   if (!session?.user?.id) return { error: "Tidak terautentikasi" }
 
-  const role = session.user.role as Role
-  if (!canManageEmployees(role)) return { error: "Anda tidak memiliki izin untuk memblokir pegawai" }
+  const scope = await resolveEmployeeAccessScope(session.user)
+  const existing = await prisma.employee.findUnique({
+    where: { id },
+    select: { id: true, departmentId: true },
+  })
+  if (!existing) return { error: "Data pegawai tidak ditemukan" }
+  if (!canMutateEmployeeRecord(scope, existing)) {
+    return { error: "Anda tidak memiliki izin untuk memblokir pegawai ini" }
+  }
 
   await prisma.employee.update({ where: { id }, data: { isBlocked: blocked } })
   await logActivity({

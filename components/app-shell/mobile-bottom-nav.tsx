@@ -577,15 +577,16 @@ export function MobileBottomNav({ open: controlledOpen, onOpenChange }: MobileBo
   const isSheetOpen = controlledOpen !== undefined ? controlledOpen : uncontrolledOpen
   const setIsSheetOpen = onOpenChange || setUncontrolledOpen
 
-  const user = session?.user as { name?: string | null; role?: Role; nip?: string | null; employeeId?: string | null } | undefined
+  const user = session?.user as { name?: string | null; role?: Role; nip?: string | null; employeeId?: string | null; departmentId?: string | null } | undefined
   const role = user?.role
   const nip = user?.nip
   const userName = user?.name || "Pengguna"
   const employeeId = user?.employeeId
+  const departmentId = user?.departmentId
 
   const roleCategory = useMemo(() => {
-    return resolveUserRoleCategory(role, nip, userName)
-  }, [role, nip, userName])
+    return resolveUserRoleCategory(role, nip, userName, departmentId)
+  }, [role, nip, userName, departmentId])
 
   const navConfig = useMemo(() => {
     return buildRoleNavigation(roleCategory, employeeId, nip, userName)

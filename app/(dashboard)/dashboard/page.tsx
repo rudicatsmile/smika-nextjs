@@ -8,35 +8,9 @@ import {
   resolveUserRoleCategory,
   UserRoleCategory,
 } from "@/lib/role-category"
+import { resolveAdminUnitDepartment, SessionScopeUser } from "@/lib/employee-scope"
 
 export const dynamic = "force-dynamic"
-
-/**
- * Mencari unit departemen untuk Admin Unit Lembaga (user_tk, user_sd, dll)
- */
-async function resolveUnitDepartment(nip?: string | null, name?: string | null) {
-  const cleanNip = (nip || "").toLowerCase()
-  const cleanName = (name || "").toLowerCase()
-
-  let keyword = ""
-  if (cleanNip.includes("tk") || cleanName.includes("tk")) keyword = "tk"
-  else if (cleanNip.includes("sd") || cleanName.includes("sd")) keyword = "sd"
-  else if (cleanNip.includes("smp") || cleanName.includes("smp")) keyword = "smp"
-  else if (cleanNip.includes("smkdp1") || cleanName.includes("smk 1") || cleanName.includes("smk dp 1")) keyword = "smk"
-  else if (cleanNip.includes("smkdp2") || cleanName.includes("smk 2") || cleanName.includes("smk dp 2")) keyword = "smk"
-  else if (cleanNip.includes("yayasan") || cleanName.includes("yayasan")) keyword = "yayasan"
-
-  if (!keyword) return null
-
-  return await prisma.department.findFirst({
-    where: {
-      OR: [
-        { code: { contains: keyword } },
-        { name: { contains: keyword } },
-      ],
-    },
-  })
-}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 1. Data Loader: PEGAWAI (Personal Dashboard)
@@ -90,11 +64,11 @@ async function getPegawaiDashboardData(employeeId?: string | null, nip?: string 
 // ─────────────────────────────────────────────────────────────────────────────
 // 2. Data Loader: ADMIN UNIT LEMBAGA (Scoped Unit Dashboard)
 // ─────────────────────────────────────────────────────────────────────────────
-async function getAdminUnitDashboardData(nip?: string | null, name?: string | null) {
-  const dept = await resolveUnitDepartment(nip, name)
+async function getAdminUnitDashboardData(user?: SessionScopeUser | null) {
+  const dept = await resolveAdminUnitDepartment(user)
   const deptId = dept?.id
 
-  const whereUnit = deptId ? { departmentId: deptId } : {}
+  const whereUnit = deptId ? { departmentId: deptId } : { departmentId: "__UNASSIGNED_UNIT__" }
   const now = new Date()
 
   const [
@@ -462,8 +436,9 @@ export default async function DashboardPage() {
   const nip = session?.user?.nip
   const name = session?.user?.name
   const employeeId = session?.user?.employeeId
+  const departmentId = session?.user?.departmentId
 
-  const roleCategory: UserRoleCategory = resolveUserRoleCategory(role, nip, name)
+  const roleCategory: UserRoleCategory = resolveUserRoleCategory(role, nip, name, departmentId)
 
   let dashboardData: any = {}
 
@@ -472,7 +447,7 @@ export default async function DashboardPage() {
       dashboardData = await getPegawaiDashboardData(employeeId, nip)
       break
     case "ADMIN_UNIT":
-      dashboardData = await getAdminUnitDashboardData(nip, name)
+      dashboardData = await getAdminUnitDashboardData(session?.user)
       break
     case "PIMPINAN":
       dashboardData = await getPimpinanDashboardData(employeeId)

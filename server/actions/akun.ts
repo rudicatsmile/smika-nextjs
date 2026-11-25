@@ -19,7 +19,7 @@ async function checkAdmin() {
 
 export async function createUser(data: {
   name: string; email?: string; nip?: string;
-  password: string; role: Role; employeeId?: string
+  password: string; role: Role; employeeId?: string; departmentId?: string
 }) {
   const session = await checkAdmin()
   if (!session) return { error: "Akses ditolak" }
@@ -36,6 +36,7 @@ export async function createUser(data: {
         passwordHash,
         role: data.role,
         employeeId: data.employeeId || null,
+        departmentId: data.departmentId || null,
       },
     })
     await logActivity({ userId: session.user.id, action: "CREATE_USER", entity: "User", entityId: user.id })
@@ -52,6 +53,21 @@ export async function updateUserRole(id: string, role: Role) {
   if (!session) return { error: "Akses ditolak" }
   await prisma.user.update({ where: { id }, data: { role } })
   await logActivity({ userId: session.user.id, action: "UPDATE_ROLE", entity: "User", entityId: id })
+  revalidatePath("/akun")
+  return { success: true }
+}
+
+export async function updateUserDepartment(id: string, departmentId: string | null) {
+  const session = await checkAdmin()
+  if (!session) return { error: "Akses ditolak" }
+  await prisma.user.update({ where: { id }, data: { departmentId: departmentId || null } })
+  await logActivity({
+    userId: session.user.id,
+    action: "UPDATE_UNIT",
+    entity: "User",
+    entityId: id,
+    meta: { departmentId },
+  })
   revalidatePath("/akun")
   return { success: true }
 }

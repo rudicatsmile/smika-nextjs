@@ -20,13 +20,17 @@ export type UserRoleCategory =
 export function resolveUserRoleCategory(
   role?: Role,
   nip?: string | null,
-  name?: string | null
+  name?: string | null,
+  departmentId?: string | null
 ): UserRoleCategory {
   if (!role) return "PEGAWAI"
   if (role === "SUPER_ADMIN") return "SUPER_ADMIN"
   if (role === "PEMILIK_YAYASAN_1" || role === "PEMILIK_YAYASAN_2") return "PEMILIK_YAYASAN"
   if (role === "PIMPINAN") return "PIMPINAN"
   if (role === "HR") {
+    if (departmentId) {
+      return "ADMIN_UNIT"
+    }
     const cleanNip = (nip || "").toLowerCase()
     const cleanName = (name || "").toLowerCase()
     if (

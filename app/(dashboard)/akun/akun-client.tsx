@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Plus, MoreHorizontal, Key, Shield, UserX, UserCheck, Trash2, Loader2 } from "lucide-react"
 import { toast } from "sonner"
-import { createUser, updateUserRole, toggleUserActive, resetUserPassword, deleteUser } from "@/server/actions/akun"
+import { createUser, updateUserRole, updateUserDepartment, toggleUserActive, resetUserPassword, deleteUser } from "@/server/actions/akun"
 import { ROLE_LABELS, ROLE_COLORS } from "@/lib/rbac"
 import { Role } from "@/app/generated/prisma/enums"
 import { format } from "date-fns"
@@ -30,17 +30,28 @@ import { id } from "date-fns/locale"
 
 interface User {
   id: string; name: string; email?: string | null; nip?: string | null
-  role: Role; isActive: boolean; createdAt: Date | string; employeeId?: string | null
+  role: Role; isActive: boolean; createdAt: Date | string
+  employeeId?: string | null; departmentId?: string | null
   employee?: { fullName: string; department?: { name: string } | null } | null
+  department?: { id: string; name: string; code: string } | null
 }
 interface UnlinkedEmployee { id: string; fullName: string; employeeIdNumber: string }
+interface DepartmentOption { id: string; name: string; code: string }
 
-export function AkunClient({ users, unlinkedEmployees }: { users: User[]; unlinkedEmployees: UnlinkedEmployee[] }) {
+export function AkunClient({
+  users,
+  unlinkedEmployees,
+  departments,
+}: {
+  users: User[]
+  unlinkedEmployees: UnlinkedEmployee[]
+  departments: DepartmentOption[]
+}) {
   const [addOpen, setAddOpen] = useState(false)
   const [resetId, setResetId] = useState<string | null>(null)
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
-  const [form, setForm] = useState({ name: "", email: "", nip: "", password: "", role: "PEGAWAI" as Role, employeeId: "" })
+  const [form, setForm] = useState({ name: "", email: "", nip: "", password: "", role: "PEGAWAI" as Role, employeeId: "", departmentId: "" })
   const [newPass, setNewPass] = useState("")
 
   const handleAdd = () => {
@@ -49,9 +60,10 @@ export function AkunClient({ users, unlinkedEmployees }: { users: User[]; unlink
         name: form.name, email: form.email || undefined,
         nip: form.nip || undefined, password: form.password,
         role: form.role, employeeId: form.employeeId || undefined,
+        departmentId: form.departmentId || undefined,
       })
       if (result.error) toast.error(result.error)
-      else { toast.success("Akun berhasil dibuat"); setAddOpen(false); setForm({ name: "", email: "", nip: "", password: "", role: "PEGAWAI", employeeId: "" }) }
+      else { toast.success("Akun berhasil dibuat"); setAddOpen(false); setForm({ name: "", email: "", nip: "", password: "", role: "PEGAWAI", employeeId: "", departmentId: "" }) }
     })
   }
 
@@ -60,6 +72,14 @@ export function AkunClient({ users, unlinkedEmployees }: { users: User[]; unlink
       const result = await updateUserRole(id, role)
       if (result.error) toast.error(result.error)
       else toast.success("Role diperbarui")
+    })
+  }
+
+  const handleDepartmentChange = (id: string, departmentId: string | null) => {
+    startTransition(async () => {
+      const result = await updateUserDepartment(id, departmentId)
+      if (result.error) toast.error(result.error)
+      else toast.success("Unit lembaga akun diperbarui")
     })
   }
 
@@ -106,6 +126,7 @@ export function AkunClient({ users, unlinkedEmployees }: { users: User[]; unlink
                   <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Pengguna</th>
                   <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider hidden md:table-cell">NIP / Email</th>
                   <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Role</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider hidden lg:table-cell">Unit / Lembaga</th>
                   <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Status</th>
                   <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider hidden lg:table-cell">Dibuat</th>
                   <th className="px-4 py-3"></th>
@@ -148,6 +169,31 @@ export function AkunClient({ users, unlinkedEmployees }: { users: User[]; unlink
                           ))}
                         </SelectContent>
                       </Select>
+                    </td>
+                    <td className="px-4 py-3 hidden lg:table-cell">
+                      {user.role === "HR" ? (
+                        <Select
+                          value={user.departmentId || "all"}
+                          onValueChange={(v) => handleDepartmentChange(user.id, v === "all" ? null : v)}
+                          disabled={isPending}
+                        >
+                          <SelectTrigger className="h-7 text-xs w-44">
+                            <SelectValue placeholder="HR Pusat (Semua Unit)" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all" className="text-xs">HR Pusat (Semua Unit)</SelectItem>
+                            {departments.map((d) => (
+                              <SelectItem key={d.id} value={d.id} className="text-xs">
+                                {d.name} ({d.code})
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">
+                          {user.employee?.department?.name ?? "Semua Unit"}
+                        </span>
+                      )}
                     </td>
                     <td className="px-4 py-3">
                       <Badge
@@ -229,6 +275,23 @@ export function AkunClient({ users, unlinkedEmployees }: { users: User[]; unlink
                 </SelectContent>
               </Select>
             </div>
+            {form.role === "HR" && (
+              <div className="space-y-1.5">
+                <Label>Unit Lembaga (opsional — khusus Admin Unit)</Label>
+                <Select
+                  value={form.departmentId || "all"}
+                  onValueChange={(v) => setForm({ ...form, departmentId: v === "all" ? "" : v })}
+                >
+                  <SelectTrigger><SelectValue placeholder="HR Pusat (Semua Unit)" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">HR Pusat (Semua Unit)</SelectItem>
+                    {departments.map((d) => (
+                      <SelectItem key={d.id} value={d.id}>{d.name} ({d.code})</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             <div className="space-y-1.5">
               <Label>Tautkan ke Pegawai (opsional)</Label>
               <Select value={form.employeeId || "none"} onValueChange={(v) => setForm({ ...form, employeeId: v === "none" ? "" : v })}>

@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
-import { canViewOwnDepartmentEmployees, canEditOwnEmployeeData } from "@/lib/rbac"
+import { resolveEmployeeAccessScope } from "@/lib/employee-scope"
 import { Role } from "@/app/generated/prisma/enums"
 import { EmployeeListClient } from "./employee-list-client"
 
@@ -21,17 +21,7 @@ export default async function PegawaiPage({
 
   const session = await getServerSession(authOptions)
   const role = session?.user?.role as Role | undefined
-  const userEmployeeId = session?.user?.employeeId as string | undefined
-
-  // Fetch user's department if they're PIMPINAN
-  let userDepartmentId: string | undefined
-  if (role && canViewOwnDepartmentEmployees(role) && userEmployeeId) {
-    const user = await prisma.employee.findUnique({
-      where: { id: userEmployeeId },
-      select: { departmentId: true },
-    })
-    userDepartmentId = user?.departmentId
-  }
+  const scope = await resolveEmployeeAccessScope(session?.user)
 
   const where: any = {
     AND: [
@@ -46,22 +36,16 @@ export default async function PegawaiPage({
             ],
           }
         : {},
-      // PIMPINAN can only see their own department
-      role && canViewOwnDepartmentEmployees(role) && userDepartmentId
-        ? { departmentId: userDepartmentId }
-        : dept
-        ? { departmentId: dept }
-        : {},
-      // PEGAWAI can only see their own data
-      role && canEditOwnEmployeeData(role) && session?.user?.employeeId
-        ? { id: session.user.employeeId }
-        : {},
+      // Pembatasan otomatis berdasarkan role (ADMIN_UNIT -> unitnya saja, PEGAWAI -> diri sendiri, SUPER_ADMIN/HR_PUSAT/PIMPINAN/PEMILIK -> semua)
+      scope.employeeWhereFilter,
+      // Filter ?dept= dari query URL hanya berlaku bagi role yang boleh melihat lintas unit
+      scope.canViewAllEmployees && dept ? { departmentId: dept } : {},
       status ? { employmentStatus: status as any } : {},
     ],
   }
 
-  // PEGAWAI should not see status filter
-  const effectiveStatusFilter = role && canEditOwnEmployeeData(role) ? "" : status
+  // PEGAWAI tidak perlu filter status
+  const effectiveStatusFilter = scope.isSelfScoped ? "" : status
 
   const [employees, total, departments] = await Promise.all([
     prisma.employee.findMany({
@@ -72,9 +56,15 @@ export default async function PegawaiPage({
       take: limit,
     }),
     prisma.employee.count({ where }),
-    // For PIMPINAN, only show their own department in the filter
-    role && canViewOwnDepartmentEmployees(role) && userDepartmentId
-      ? prisma.department.findMany({ where: { id: userDepartmentId, isActive: true }, orderBy: { name: "asc" } })
+    scope.isUnitScoped
+      ? scope.unitDepartmentId
+        ? prisma.department.findMany({
+            where: { id: scope.unitDepartmentId, isActive: true },
+            orderBy: { name: "asc" },
+          })
+        : Promise.resolve([])
+      : scope.isSelfScoped
+      ? Promise.resolve([])
       : prisma.department.findMany({ where: { isActive: true }, orderBy: { name: "asc" } }),
   ])
 
@@ -86,9 +76,13 @@ export default async function PegawaiPage({
       limit={limit}
       departments={departments}
       searchQuery={q}
-      deptFilter={dept}
+      deptFilter={scope.isUnitScoped ? (scope.unitDepartmentId ?? "") : dept}
       statusFilter={effectiveStatusFilter}
       userRole={role}
+      canManage={scope.canMutateEmployees}
+      isUnitScoped={scope.isUnitScoped}
+      lockedDepartmentId={scope.unitDepartmentId}
+      lockedDepartmentName={scope.unitDepartment?.name ?? null}
     />
   )
 }

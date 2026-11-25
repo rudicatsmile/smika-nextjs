@@ -2,10 +2,16 @@ import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
+import { resolveEmployeeAccessScope } from "@/lib/employee-scope"
 
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions)
   if (!session) return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
+
+  const scope = await resolveEmployeeAccessScope(session.user)
+  if (!scope.canMutateEmployees) {
+    return NextResponse.json({ message: "Akses ditolak" }, { status: 403 })
+  }
 
   const { rows } = await req.json()
   if (!Array.isArray(rows) || rows.length === 0) {
@@ -32,6 +38,9 @@ export async function POST(req: NextRequest) {
           email: row.email || null,
           phoneNumber: row.phoneNumber || null,
           gender: gender as any,
+          ...(scope.isUnitScoped && scope.unitDepartmentId
+            ? { departmentId: scope.unitDepartmentId }
+            : {}),
         },
       })
       created++

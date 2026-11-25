@@ -1,6 +1,9 @@
-import { notFound } from "next/navigation"
+import { notFound, redirect } from "next/navigation"
 import { Suspense } from "react"
+import { getServerSession } from "next-auth"
+import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
+import { resolveEmployeeAccessScope, canAccessEmployeeRecord } from "@/lib/employee-scope"
 import { EmployeeDetailClient } from "./employee-detail-client"
 
 export const dynamic = "force-dynamic"
@@ -12,6 +15,10 @@ export default async function EmployeeDetailPage({
   params: Promise<{ id: string }>
   searchParams?: Promise<{ tab?: string }>
 }) {
+  const session = await getServerSession(authOptions)
+  if (!session?.user) redirect("/login")
+  const scope = await resolveEmployeeAccessScope(session.user)
+
   const { id } = await params
   const { tab } = (await searchParams) || {}
 
@@ -72,6 +79,7 @@ export default async function EmployeeDetailPage({
   ])
 
   if (!employee) notFound()
+  if (!canAccessEmployeeRecord(scope, employee)) notFound()
 
   return (
     <Suspense fallback={null}>

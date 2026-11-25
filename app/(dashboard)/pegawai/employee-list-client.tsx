@@ -29,7 +29,7 @@ import { toast } from "sonner"
 import { deleteEmployee } from "@/server/actions/pegawai"
 import { format } from "date-fns"
 import { id } from "date-fns/locale"
-import { canCreateEmployee, canEditEmployee, canDeleteEmployee, canUploadDocuments, canEditOwnEmployeeData, canViewOwnDepartmentEmployees } from "@/lib/rbac"
+import { canEditOwnEmployeeData } from "@/lib/rbac"
 import { Role } from "@/app/generated/prisma/enums"
 
 const STATUS_COLORS: Record<string, string> = {
@@ -56,11 +56,19 @@ interface Props {
   departments: Department[]
   searchQuery: string; deptFilter: string; statusFilter: string
   userRole?: Role
+  canManage?: boolean
+  isUnitScoped?: boolean
+  lockedDepartmentId?: string | null
+  lockedDepartmentName?: string | null
 }
 
 export function EmployeeListClient({
   employees, total, page, limit, departments,
   searchQuery, deptFilter, statusFilter, userRole,
+  canManage = false,
+  isUnitScoped = false,
+  lockedDepartmentId = null,
+  lockedDepartmentName = null,
 }: Props) {
   const router = useRouter()
   const pathname = usePathname()
@@ -106,11 +114,18 @@ export function EmployeeListClient({
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold">Data Pegawai</h1>
+          <div className="flex items-center gap-2 flex-wrap">
+            <h1 className="text-2xl font-bold">Data Pegawai</h1>
+            {isUnitScoped && lockedDepartmentName && (
+              <Badge variant="secondary" className="text-xs font-medium">
+                Unit: {lockedDepartmentName}
+              </Badge>
+            )}
+          </div>
           <p className="text-muted-foreground text-sm">{total} pegawai ditemukan</p>
         </div>
         <div className="flex gap-2">
-          {role && canUploadDocuments(role) && (
+          {canManage && (
             <Button variant="outline" size="sm" asChild>
               <Link href="/pegawai/import"><Upload className="h-4 w-4 mr-1.5" />Import</Link>
             </Button>
@@ -118,7 +133,7 @@ export function EmployeeListClient({
           <Button variant="outline" size="sm" asChild>
             <a href="/api/pegawai/export"><Download className="h-4 w-4 mr-1.5" />Export</a>
           </Button>
-          {role && canCreateEmployee(role) && (
+          {canManage && (
             <Button size="sm" asChild>
               <Link href="/pegawai/baru"><Plus className="h-4 w-4 mr-1.5" />Tambah Pegawai</Link>
             </Button>
@@ -145,20 +160,33 @@ export function EmployeeListClient({
           </form>
 
           <div className="flex gap-2">
-            <Select
-              value={deptFilter || "all"}
-              onValueChange={(v) => updateParams({ dept: v === "all" ? "" : v })}
-            >
-              <SelectTrigger className="w-40">
-                <SelectValue placeholder="Semua Unit" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Semua Unit</SelectItem>
-                {departments.map((d) => (
-                  <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            {isUnitScoped ? (
+              <Select value={lockedDepartmentId || "locked"} disabled>
+                <SelectTrigger className="w-44 bg-muted/40">
+                  <SelectValue placeholder={lockedDepartmentName ?? "Unit Terkunci"} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={lockedDepartmentId || "locked"}>
+                    {lockedDepartmentName ?? "Unit Terkunci"}
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            ) : (
+              <Select
+                value={deptFilter || "all"}
+                onValueChange={(v) => updateParams({ dept: v === "all" ? "" : v })}
+              >
+                <SelectTrigger className="w-40">
+                  <SelectValue placeholder="Semua Unit" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Semua Unit</SelectItem>
+                  {departments.map((d) => (
+                    <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
 
             <Select
               value={statusFilter || "all"}
@@ -215,9 +243,9 @@ export function EmployeeListClient({
 
       {/* Content */}
       {viewMode === "table" ? (
-        <TableView employees={employees} onDelete={(id) => setDeleteId(id)} role={role} />
+        <TableView employees={employees} onDelete={(id) => setDeleteId(id)} role={role} canManage={canManage} />
       ) : (
-        <CardView employees={employees} onDelete={(id) => setDeleteId(id)} role={role} />
+        <CardView employees={employees} onDelete={(id) => setDeleteId(id)} role={role} canManage={canManage} />
       )}
 
       {/* Pagination */}
@@ -270,7 +298,17 @@ export function EmployeeListClient({
   )
 }
 
-function TableView({ employees, onDelete, role }: { employees: Employee[]; onDelete: (id: string) => void; role?: Role }) {
+function TableView({
+  employees,
+  onDelete,
+  role,
+  canManage,
+}: {
+  employees: Employee[]
+  onDelete: (id: string) => void
+  role?: Role
+  canManage: boolean
+}) {
   if (employees.length === 0) {
     return (
       <div className="bg-card border border-border rounded-xl p-12 text-center">
@@ -338,12 +376,12 @@ function TableView({ employees, onDelete, role }: { employees: Employee[]; onDel
                       <DropdownMenuItem asChild>
                         <Link href={`/pegawai/${emp.id}`}><Eye className="mr-2 h-4 w-4" />Lihat Detail</Link>
                       </DropdownMenuItem>
-                      {role && (canEditEmployee(role) || canViewOwnDepartmentEmployees(role) || canEditOwnEmployeeData(role)) && (
+                      {(canManage || (role && canEditOwnEmployeeData(role))) && (
                         <DropdownMenuItem asChild>
                           <Link href={`/pegawai/${emp.id}/edit`}><Edit className="mr-2 h-4 w-4" />Edit</Link>
                         </DropdownMenuItem>
                       )}
-                      {role && canDeleteEmployee(role) && (
+                      {canManage && (
                         <DropdownMenuItem
                           className="text-destructive focus:text-destructive"
                           onClick={() => onDelete(emp.id)}
@@ -374,7 +412,17 @@ function Users(props: any) {
   )
 }
 
-function CardView({ employees, onDelete, role }: { employees: Employee[]; onDelete: (id: string) => void; role?: Role }) {
+function CardView({
+  employees,
+  onDelete,
+  role,
+  canManage,
+}: {
+  employees: Employee[]
+  onDelete: (id: string) => void
+  role?: Role
+  canManage: boolean
+}) {
   if (employees.length === 0) {
     return (
       <div className="bg-card border border-border rounded-xl p-12 text-center">
@@ -406,12 +454,12 @@ function CardView({ employees, onDelete, role }: { employees: Employee[]; onDele
                   <DropdownMenuItem asChild>
                     <Link href={`/pegawai/${emp.id}`}><Eye className="mr-2 h-4 w-4" />Lihat Detail</Link>
                   </DropdownMenuItem>
-                  {role && (canEditEmployee(role) || canViewOwnDepartmentEmployees(role) || canEditOwnEmployeeData(role)) && (
+                  {(canManage || (role && canEditOwnEmployeeData(role))) && (
                     <DropdownMenuItem asChild>
                       <Link href={`/pegawai/${emp.id}/edit`}><Edit className="mr-2 h-4 w-4" />Edit</Link>
                     </DropdownMenuItem>
                   )}
-                  {role && canDeleteEmployee(role) && (
+                  {canManage && (
                     <DropdownMenuItem className="text-destructive" onClick={() => onDelete(emp.id)}>
                       <Trash2 className="mr-2 h-4 w-4" />Hapus
                     </DropdownMenuItem>
