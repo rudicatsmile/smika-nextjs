@@ -7,7 +7,7 @@ import { useState, useEffect } from "react"
 import { cn } from "@/lib/utils"
 import {
   LayoutDashboard, Users, Database, Settings, FileText,
-  ChevronLeft, ChevronRight, BookOpen, Building2, Briefcase, Award, DropletIcon, Heart, GraduationCap, History, Users as UsersIcon, ScrollText, CheckCircle, Upload, Handshake, Calendar, BadgeCheck, ClipboardCheck, ChevronDown, Settings as SettingsIcon, BarChart3, Book, Bell, PieChart
+  ChevronLeft, ChevronRight, BookOpen, Building2, Briefcase, Award, DropletIcon, Heart, GraduationCap, History, Users as UsersIcon, ScrollText, CheckCircle, Upload, Handshake, Calendar, BadgeCheck, ClipboardCheck, ChevronDown, Settings as SettingsIcon, BarChart3, Book, Bell, PieChart, FileCheck2, FilePenLine
 } from "lucide-react"
 import { canViewLogs, canManageMasterData, canManageUsers, canViewEmployeeList, canViewDP3, canViewKesediaan, canManageAppConfig, canViewDocuments } from "@/lib/rbac"
 import { Role } from "@/app/generated/prisma/enums"
@@ -74,6 +74,9 @@ function buildNavItems(role?: Role): NavItem[] {
 
   if (role && canViewDocuments(role)) {
     items.push({ href: "/data-dokumen-penting", label: "Dokumen Penting", icon: Upload })
+    if (role !== "PEGAWAI") {
+      items.push({ href: "/rekap-berkas", label: "Rekap Berkas", icon: FileCheck2 })
+    }
   }
 
   if (role && canViewKesediaan(role)) {
@@ -116,6 +119,11 @@ function buildNavItems(role?: Role): NavItem[] {
   // Analitik HR — hanya SUPER_ADMIN & HR
   if (role && (role === "SUPER_ADMIN" || role === "HR")) {
     items.push({ href: "/analitik", label: "Analitik HR", icon: PieChart })
+  }
+
+  // Koreksi Data Mandiri — Pegawai, HR, Super Admin
+  if (role && (role === "PEGAWAI" || role === "HR" || role === "SUPER_ADMIN")) {
+    items.push({ href: "/pengajuan-koreksi", label: "Koreksi Data", icon: FilePenLine })
   }
 
   // Notifikasi — semua user

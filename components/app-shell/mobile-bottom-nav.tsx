@@ -52,6 +52,8 @@ import {
   KeyRound,
   Bell,
   PieChart,
+  FileCheck2,
+  FilePenLine,
 } from "lucide-react"
 
 import {
@@ -170,6 +172,7 @@ export function buildRoleNavigation(
               { title: "Profil & Biodata Pribadi", href: `${profileHref}?tab=personal`, icon: User, desc: "Data diri, NIP, & unit dinas" },
               { title: "Form Kesediaan Mengajar", href: "/kesediaan", icon: Handshake, badge: "Penting", desc: "Kesanggupan beban kerja & hari" },
               { title: "Upload Dokumen Penting", href: "/data-dokumen-penting", icon: Upload, desc: "Berkas digital kepegawaian" },
+              { title: "Koreksi Data Mandiri", href: "/pengajuan-koreksi", icon: FilePenLine, badge: "Baru", desc: "Ajukan perbaikan biodata & kontak" },
               { title: "Hasil Penilaian DP3", href: "/dp3", icon: ClipboardCheck, desc: "Rekap nilai dan catatan pimpinan" },
             ],
           },
@@ -244,6 +247,8 @@ export function buildRoleNavigation(
               { title: "Data Seluruh Pegawai", href: "/pegawai", icon: Users, desc: "Pencarian, tambah & verifikasi profil" },
               { title: "Riwayat Kepegawaian & SK", href: "/riwayat-kepegawaian", icon: FileText, desc: "Penerbitan SK, kenaikan & mutasi" },
               { title: "Dokumen Penting Pegawai", href: "/data-dokumen-penting", icon: Upload, desc: "Arsip berkas digital seluruh staf" },
+              { title: "Rekap Kelengkapan Berkas", href: "/rekap-berkas", icon: FileCheck2, badge: "Baru", desc: "Matriks checklist & export Excel berkas" },
+              { title: "Koreksi Data Mandiri", href: "/pengajuan-koreksi", icon: FilePenLine, desc: "Review & setujui koreksi data pegawai" },
               { title: "Monitoring Penilaian DP3", href: "/dp3", icon: ClipboardCheck, desc: "Rekapitulasi penilaian kinerja staf" },
               { title: "Form Kesediaan Mengajar", href: "/kesediaan", icon: Handshake, desc: "Pantau kesiapan formasi guru" },
             ],
@@ -330,6 +335,8 @@ export function buildRoleNavigation(
               { title: `Daftar Staf ${unitLabel}`, href: "/pegawai", icon: Users, desc: "Profil & direktori pegawai unit" },
               { title: "Form Kesediaan Guru Unit", href: "/kesediaan", icon: Handshake, badge: "Penting", desc: "Pantau pengisian kesediaan mengajar" },
               { title: "Dokumen & Berkas Unit", href: "/data-dokumen-penting", icon: Upload, desc: "Pemeriksaan berkas guru sekolah" },
+              { title: "Rekap Kelengkapan Berkas", href: "/rekap-berkas", icon: FileCheck2, desc: "Checklist kelengkapan berkas unit" },
+              { title: "Koreksi Data Unit", href: "/pengajuan-koreksi", icon: FilePenLine, desc: "Review koreksi data pegawai unit" },
               { title: "Penilaian DP3 Unit", href: "/dp3", icon: ClipboardCheck, desc: "Persiapan penilaian kinerja staf unit" },
               { title: "Laporan Jabatan Unit", href: "/laporan/jabatan", icon: BarChart3, desc: "Distribusi tugas & jabatan unit" },
             ],
@@ -490,6 +497,8 @@ export function buildRoleNavigation(
               { title: "Penilaian DP3", href: "/dp3", icon: ClipboardCheck, desc: "Rekap & override nilai DP3" },
               { title: "Form Kesediaan Mengajar", href: "/kesediaan", icon: Handshake, desc: "Data kesediaan mengajar staf" },
               { title: "Dokumen Penting Pegawai", href: "/data-dokumen-penting", icon: Upload, desc: "Arsip berkas terpusat" },
+              { title: "Rekap Kelengkapan Berkas", href: "/rekap-berkas", icon: FileCheck2, desc: "Checklist kelengkapan & export Excel" },
+              { title: "Koreksi Data Mandiri", href: "/pengajuan-koreksi", icon: FilePenLine, desc: "Review pengajuan koreksi data" },
               { title: "Laporan Jabatan Pegawai", href: "/laporan/jabatan", icon: BarChart3, desc: "Rekapitulasi SDM yayasan" },
               { title: "Riwayat Kepegawaian", href: "/riwayat-kepegawaian", icon: FileText, desc: "SK & catatan riwayat dinas" },
             ],

@@ -62,9 +62,11 @@ model User {
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
 
-  passwordResetTokens PasswordResetToken[]
-  activityLogs        ActivityLog[]
-  notifications       Notification[]
+  passwordResetTokens       PasswordResetToken[]
+  activityLogs              ActivityLog[]
+  notifications             Notification[]
+  correctionRequestsCreated DataCorrectionRequest[] @relation("CorrectionRequestedBy")
+  correctionRequestsReviewed DataCorrectionRequest[] @relation("CorrectionReviewedBy")
 }
 
 model PasswordResetToken {
@@ -449,6 +451,7 @@ model Employee {
   socialOrganizations SocialOrganization[]
   importantDocuments ImportantDocument[]
   kesediaan          Kesediaan[]
+  correctionRequests DataCorrectionRequest[]
 }
 
 model EmployeeDocument {
@@ -482,6 +485,35 @@ model ActivityLog {
   ipAddress String?
   userAgent String?
   createdAt DateTime @default(now())
+}
+
+enum CorrectionStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model DataCorrectionRequest {
+  id            String           @id @default(cuid())
+  employeeId    String
+  employee      Employee         @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  requestedById String
+  requestedBy   User             @relation("CorrectionRequestedBy", fields: [requestedById], references: [id], onDelete: Cascade)
+  fieldKey      String
+  fieldLabel    String
+  oldValue      String?          @db.Text
+  newValue      String           @db.Text
+  reason        String           @db.Text
+  status        CorrectionStatus @default(PENDING)
+  reviewedById  String?
+  reviewedBy    User?            @relation("CorrectionReviewedBy", fields: [reviewedById], references: [id], onDelete: SetNull)
+  reviewNote    String?          @db.Text
+  reviewedAt    DateTime?
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+
+  @@index([employeeId, status])
+  @@index([status, createdAt])
 }
 
 model Notification {
