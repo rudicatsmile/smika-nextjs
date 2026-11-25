@@ -2,7 +2,7 @@
 
 import { useSession, signOut } from "next-auth/react"
 import { useTheme } from "next-themes"
-import { Bell, Menu, Moon, Sun, LogOut, User, ChevronDown, KeyRound } from "lucide-react"
+import { Menu, Moon, Sun, LogOut, User, ChevronDown, KeyRound } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import {
@@ -17,6 +17,7 @@ import {
 import { ROLE_LABELS } from "@/lib/rbac"
 import { Role } from "@/app/generated/prisma/enums"
 import Link from "next/link"
+import { NotificationBell } from "@/components/notification-bell"
 
 interface TopbarProps {
   onMenuClick: () => void
@@ -61,9 +62,7 @@ export function Topbar({ onMenuClick }: TopbarProps) {
         </Button>
 
         {/* Notifications */}
-        <Button variant="ghost" size="icon" className="text-muted-foreground relative">
-          <Bell className="h-4 w-4" />
-        </Button>
+        <NotificationBell />
 
         {/* Profile */}
         <DropdownMenu>

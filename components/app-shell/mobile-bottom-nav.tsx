@@ -50,6 +50,8 @@ import {
   BadgeCheck,
   Sparkles,
   KeyRound,
+  Bell,
+  PieChart,
 } from "lucide-react"
 
 import {
@@ -268,6 +270,8 @@ export function buildRoleNavigation(
               { title: "Master Status Pegawai", href: "/master/status-kepegawaian", icon: BadgeCheck, desc: "Status tetap, kontrak, honorer" },
               { title: "Pengaturan SIMKA", href: "/pengaturan", icon: SlidersHorizontal, desc: "Konfigurasi instansi & branding" },
               { title: "Log Aktivitas Sistem", href: "/log-aktivitas", icon: FileText, desc: "Audit trail perubahan data" },
+              { title: "Analitik HR", href: "/analitik", icon: PieChart, badge: "Baru", desc: "Dashboard statistik & distribusi SDM" },
+              { title: "Notifikasi", href: "/notifikasi", icon: Bell, desc: "Pusat pemberitahuan sistem" },
             ],
           },
         ],
@@ -464,6 +468,8 @@ export function buildRoleNavigation(
               { title: "Manajemen Akun Pengguna", href: "/akun", icon: Settings, badge: "Admin", desc: "Kelola user, reset password & role" },
               { title: "Log Aktivitas & Audit Trail", href: "/log-aktivitas", icon: FileText, desc: "Riwayat login, edit, & hapus data" },
               { title: "Pengaturan SIMKA & Branding", href: "/pengaturan", icon: SlidersHorizontal, desc: "Konfigurasi nama, logo & tahun ajaran" },
+              { title: "Analitik HR", href: "/analitik", icon: PieChart, desc: "Dashboard statistik & distribusi SDM" },
+              { title: "Notifikasi", href: "/notifikasi", icon: Bell, desc: "Pusat pemberitahuan sistem" },
             ],
           },
           {

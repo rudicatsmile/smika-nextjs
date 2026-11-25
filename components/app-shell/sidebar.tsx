@@ -7,7 +7,7 @@ import { useState, useEffect } from "react"
 import { cn } from "@/lib/utils"
 import {
   LayoutDashboard, Users, Database, Settings, FileText,
-  ChevronLeft, ChevronRight, BookOpen, Building2, Briefcase, Award, DropletIcon, Heart, GraduationCap, History, Users as UsersIcon, ScrollText, CheckCircle, Upload, Handshake, Calendar, BadgeCheck, ClipboardCheck, ChevronDown, Settings as SettingsIcon, BarChart3, Book
+  ChevronLeft, ChevronRight, BookOpen, Building2, Briefcase, Award, DropletIcon, Heart, GraduationCap, History, Users as UsersIcon, ScrollText, CheckCircle, Upload, Handshake, Calendar, BadgeCheck, ClipboardCheck, ChevronDown, Settings as SettingsIcon, BarChart3, Book, Bell, PieChart
 } from "lucide-react"
 import { canViewLogs, canManageMasterData, canManageUsers, canViewEmployeeList, canViewDP3, canViewKesediaan, canManageAppConfig, canViewDocuments } from "@/lib/rbac"
 import { Role } from "@/app/generated/prisma/enums"
@@ -112,6 +112,14 @@ function buildNavItems(role?: Role): NavItem[] {
   if (role && canViewLogs(role)) {
     items.push({ href: "/log-aktivitas", label: "Log Aktivitas", icon: FileText })
   }
+
+  // Analitik HR — hanya SUPER_ADMIN & HR
+  if (role && (role === "SUPER_ADMIN" || role === "HR")) {
+    items.push({ href: "/analitik", label: "Analitik HR", icon: PieChart })
+  }
+
+  // Notifikasi — semua user
+  items.push({ href: "/notifikasi", label: "Notifikasi", icon: Bell })
 
   return items
 }
