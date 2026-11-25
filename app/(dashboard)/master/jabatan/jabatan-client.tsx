@@ -27,6 +27,7 @@ interface Position {
   name: string
   description?: string | null
   positionType: PositionType
+  order: number
   isActive: boolean
   departments: { id: string; name: string }[]
 }
@@ -45,13 +46,20 @@ export function JabatanClient({ positions, departments }: { positions: Position[
   const [form, setForm] = useState<Partial<Position> & { departmentIds?: string[] }>({})
   const [isPending, startTransition] = useTransition()
 
-  const filtered = positions.filter((p) =>
-    p.name.toLowerCase().includes(search.toLowerCase())
+  const sortedPositions = [...positions].sort(
+    (a, b) => (a.order ?? 0) - (b.order ?? 0) || a.name.localeCompare(b.name)
+  )
+
+  const filtered = sortedPositions.filter((p) =>
+    p.name.toLowerCase().includes(search.toLowerCase()) ||
+    (p.order?.toString() || "").includes(search)
   )
 
   const openAdd = () => {
     setEditItem(null)
-    setForm({ positionType: PositionType.SEKOLAH, departmentIds: [] })
+    const nextOrder =
+      positions.length > 0 ? Math.max(...positions.map((p) => p.order ?? 0)) + 1 : 1
+    setForm({ positionType: PositionType.SEKOLAH, order: nextOrder, departmentIds: [] })
     setDialogOpen(true)
   }
 
@@ -61,6 +69,7 @@ export function JabatanClient({ positions, departments }: { positions: Position[
       name: item.name,
       description: item.description,
       positionType: item.positionType,
+      order: item.order ?? 0,
       isActive: item.isActive,
       departmentIds: item.departments.map((d) => d.id),
     })
@@ -70,12 +79,14 @@ export function JabatanClient({ positions, departments }: { positions: Position[
   const handleSubmit = () => {
     if (!form.name?.trim()) { toast.error("Nama wajib diisi"); return }
     if (!form.positionType) { toast.error("Tipe jabatan wajib diisi"); return }
+    const orderNum = Number.isFinite(Number(form.order)) ? Number(form.order) : 0
     startTransition(async () => {
       const result = editItem
         ? await updatePosition(editItem.id, {
             name: form.name!,
             description: form.description || undefined,
             positionType: form.positionType,
+            order: orderNum,
             isActive: form.isActive,
             departmentIds: form.departmentIds,
           })
@@ -83,6 +94,7 @@ export function JabatanClient({ positions, departments }: { positions: Position[
             name: form.name!,
             description: form.description || undefined,
             positionType: form.positionType!,
+            order: orderNum,
             departmentIds: form.departmentIds,
           })
       if (result.error) toast.error(result.error)
@@ -150,7 +162,7 @@ export function JabatanClient({ positions, departments }: { positions: Position[
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-muted/50 border-b border-border">
-                <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">#</th>
+                <th className="text-center px-4 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider w-20">Urutan</th>
                 <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Nama</th>
                 <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider hidden md:table-cell">Tipe</th>
                 <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider hidden md:table-cell">Departemen</th>
@@ -162,14 +174,18 @@ export function JabatanClient({ positions, departments }: { positions: Position[
             <tbody className="divide-y divide-border">
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="text-center py-8 text-muted-foreground text-sm">
+                  <td colSpan={7} className="text-center py-8 text-muted-foreground text-sm">
                     Tidak ada data
                   </td>
                 </tr>
               ) : (
-                filtered.map((item, i) => (
+                filtered.map((item) => (
                   <tr key={item.id} className="hover:bg-muted/30 transition-colors">
-                    <td className="px-4 py-2.5 text-muted-foreground font-mono text-xs">{i + 1}</td>
+                    <td className="px-4 py-2.5 text-center">
+                      <span className="inline-flex items-center justify-center px-2 py-0.5 rounded-md font-mono text-xs font-semibold bg-muted text-muted-foreground border">
+                        #{item.order ?? 0}
+                      </span>
+                    </td>
                     <td className="px-4 py-2.5 font-medium">{item.name}</td>
                     <td className="px-4 py-2.5 hidden md:table-cell">
                       <Badge variant="secondary" className={getPositionTypeBadgeColor(item.positionType)}>
@@ -236,6 +252,20 @@ export function JabatanClient({ positions, departments }: { positions: Position[
             <DialogTitle>{editItem ? "Edit Jabatan" : "Tambah Jabatan"}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="order">Urutan Tampilan</Label>
+              <Input
+                id="order"
+                type="number"
+                min="1"
+                placeholder="1, 2, 3..."
+                value={form.order ?? ""}
+                onChange={(e) => setForm({ ...form, order: e.target.value === "" ? 0 : parseInt(e.target.value, 10) })}
+              />
+              <p className="text-[11px] text-muted-foreground">
+                Menentukan urutan prioritas tampilan pegawai berdasarkan jabatan di /pegawai dan dropdown
+              </p>
+            </div>
             <div className="space-y-1.5">
               <Label>Nama <span className="text-destructive">*</span></Label>
               <Input

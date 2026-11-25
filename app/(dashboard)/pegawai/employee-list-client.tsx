@@ -47,6 +47,7 @@ interface Employee {
   gender?: string | null; employmentStatus: string; profilePhoto?: string | null
   joinDate?: Date | string | null; email?: string | null; phoneNumber?: string | null
   department?: { id: string; name: string } | null
+  position?: { id: string; name: string } | null
 }
 interface Department { id: string; name: string }
 
@@ -326,6 +327,7 @@ function TableView({
             <tr className="border-b border-border bg-muted/50">
               <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Pegawai</th>
               <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider hidden md:table-cell">NIP</th>
+              <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider hidden md:table-cell">Jabatan</th>
               <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider hidden lg:table-cell">Unit</th>
               <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider hidden lg:table-cell">Tgl Bergabung</th>
               <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Status</th>
@@ -345,12 +347,16 @@ function TableView({
                     </Avatar>
                     <div>
                       <p className="font-medium text-sm">{emp.fullName}</p>
-                      <p className="text-xs text-muted-foreground">{emp.email ?? emp.phoneNumber ?? "-"}</p>
+                      <p className="text-xs text-muted-foreground md:hidden">{emp.position?.name ?? emp.email ?? emp.phoneNumber ?? "-"}</p>
+                      <p className="text-xs text-muted-foreground hidden md:block">{emp.email ?? emp.phoneNumber ?? "-"}</p>
                     </div>
                   </div>
                 </td>
                 <td className="px-4 py-3 hidden md:table-cell">
                   <span className="text-sm font-mono">{emp.employeeIdNumber}</span>
+                </td>
+                <td className="px-4 py-3 hidden md:table-cell">
+                  <span className="text-sm font-medium">{emp.position?.name ?? "-"}</span>
                 </td>
                 <td className="px-4 py-3 hidden lg:table-cell">
                   <span className="text-sm">{emp.department?.name ?? "-"}</span>
@@ -471,8 +477,11 @@ function CardView({
               <h3 className="font-semibold text-sm leading-tight line-clamp-2">{emp.fullName}</h3>
             </Link>
             <p className="text-xs text-muted-foreground font-mono mt-1">{emp.employeeIdNumber}</p>
+            {emp.position && (
+              <p className="text-xs font-medium text-foreground/80 mt-1">{emp.position.name}</p>
+            )}
             {emp.department && (
-              <p className="text-xs text-muted-foreground mt-1">{emp.department.name}</p>
+              <p className="text-xs text-muted-foreground mt-0.5">{emp.department.name}</p>
             )}
             <div className="mt-3">
               <Badge className={STATUS_COLORS[emp.employmentStatus] ?? "bg-muted"} variant="secondary">

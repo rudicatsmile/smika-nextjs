@@ -14,11 +14,11 @@ export default async function LaporanJabatanPage() {
     }),
     prisma.position.findMany({
       where: { isActive: true },
-      orderBy: { name: "asc" },
+      orderBy: [{ order: "asc" }, { name: "asc" }],
     }),
     prisma.department.findMany({
       where: { isActive: true },
-      orderBy: { name: "asc" },
+      orderBy: [{ order: "asc" }, { name: "asc" }],
     }),
   ])
 

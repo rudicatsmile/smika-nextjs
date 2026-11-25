@@ -4,7 +4,7 @@ import * as XLSX from "xlsx"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { canViewEmployeeList, canEditOwnEmployeeData } from "@/lib/rbac"
-import { resolveEmployeeAccessScope } from "@/lib/employee-scope"
+import { resolveEmployeeAccessScope, compareEmployeesByHierarchy } from "@/lib/employee-scope"
 import { Role } from "@/app/generated/prisma/enums"
 
 export async function GET() {
@@ -21,11 +21,11 @@ export async function GET() {
   const scope = await resolveEmployeeAccessScope(session.user)
   const where = scope.employeeWhereFilter
 
-  const employees = await prisma.employee.findMany({
+  const rawEmployees = await prisma.employee.findMany({
     where,
     include: { department: true, position: true, religion: true, bloodType: true },
-    orderBy: { fullName: "asc" },
   })
+  const employees = [...rawEmployees].sort(compareEmployeesByHierarchy)
 
   const rows = employees.map((e) => ({
     NIP: e.employeeIdNumber,

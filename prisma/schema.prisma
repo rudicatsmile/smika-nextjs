@@ -94,6 +94,7 @@ model Department {
   description   String?
   departmentType DepartmentType   @default(SEKOLAH)
   canTeach      Boolean            @default(false)
+  order         Int                @default(0)
   isActive      Boolean            @default(true)
   createdAt     DateTime           @default(now())
   updatedAt     DateTime           @updatedAt
@@ -107,6 +108,7 @@ model Position {
   name          String             @unique
   description   String?
   positionType  PositionType       @default(SEKOLAH)
+  order         Int                @default(0)
   isActive      Boolean            @default(true)
   createdAt     DateTime           @default(now())
   updatedAt     DateTime           @updatedAt

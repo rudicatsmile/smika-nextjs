@@ -31,6 +31,7 @@ interface Department {
   description?: string | null
   departmentType: DepartmentType
   canTeach: boolean
+  order: number
   isActive: boolean
 }
 
@@ -42,20 +43,35 @@ export function DepartemenClient({ departments }: { departments: Department[] })
   const [form, setForm] = useState<Partial<Department>>({})
   const [isPending, startTransition] = useTransition()
 
-  const filtered = departments.filter((d) =>
+  const sortedDepartments = [...departments].sort(
+    (a, b) => (a.order ?? 0) - (b.order ?? 0) || a.name.localeCompare(b.name)
+  )
+
+  const filtered = sortedDepartments.filter((d) =>
     d.name.toLowerCase().includes(search.toLowerCase()) ||
-    d.code.toLowerCase().includes(search.toLowerCase())
+    d.code.toLowerCase().includes(search.toLowerCase()) ||
+    (d.order?.toString() || "").includes(search)
   )
 
   const openAdd = () => {
     setEditItem(null)
-    setForm({ departmentType: DepartmentType.SEKOLAH, canTeach: false })
+    const nextOrder =
+      departments.length > 0 ? Math.max(...departments.map((d) => d.order ?? 0)) + 1 : 1
+    setForm({ departmentType: DepartmentType.SEKOLAH, canTeach: false, order: nextOrder })
     setDialogOpen(true)
   }
 
   const openEdit = (item: Department) => {
     setEditItem(item)
-    setForm({ name: item.name, code: item.code, description: item.description, departmentType: item.departmentType, canTeach: item.canTeach, isActive: item.isActive })
+    setForm({
+      name: item.name,
+      code: item.code,
+      description: item.description,
+      departmentType: item.departmentType,
+      canTeach: item.canTeach,
+      order: item.order ?? 0,
+      isActive: item.isActive,
+    })
     setDialogOpen(true)
   }
 
@@ -63,10 +79,26 @@ export function DepartemenClient({ departments }: { departments: Department[] })
     if (!form.name?.trim()) { toast.error("Nama wajib diisi"); return }
     if (!form.code?.trim()) { toast.error("Kode wajib diisi"); return }
     if (!form.departmentType) { toast.error("Tipe departemen wajib diisi"); return }
+    const orderNum = Number.isFinite(Number(form.order)) ? Number(form.order) : 0
     startTransition(async () => {
       const result = editItem
-        ? await updateDepartment(editItem.id, { code: form.code!, name: form.name!, description: form.description || undefined, departmentType: form.departmentType, canTeach: form.canTeach, isActive: form.isActive })
-        : await createDepartment({ code: form.code!, name: form.name!, description: form.description || undefined, departmentType: form.departmentType!, canTeach: form.canTeach })
+        ? await updateDepartment(editItem.id, {
+            code: form.code!,
+            name: form.name!,
+            description: form.description || undefined,
+            departmentType: form.departmentType,
+            canTeach: form.canTeach,
+            order: orderNum,
+            isActive: form.isActive,
+          })
+        : await createDepartment({
+            code: form.code!,
+            name: form.name!,
+            description: form.description || undefined,
+            departmentType: form.departmentType!,
+            canTeach: form.canTeach,
+            order: orderNum,
+          })
       if (result.error) toast.error(result.error)
       else {
         toast.success(editItem ? "Berhasil diperbarui" : "Berhasil ditambahkan")
@@ -138,6 +170,7 @@ export function DepartemenClient({ departments }: { departments: Department[] })
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-muted/50 border-b border-border">
+                <th className="text-center px-4 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider w-20">Urutan</th>
                 <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Kode</th>
                 <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Nama</th>
                 <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider hidden md:table-cell">Tipe</th>
@@ -150,13 +183,18 @@ export function DepartemenClient({ departments }: { departments: Department[] })
             <tbody className="divide-y divide-border">
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="text-center py-8 text-muted-foreground text-sm">
+                  <td colSpan={8} className="text-center py-8 text-muted-foreground text-sm">
                     Tidak ada data
                   </td>
                 </tr>
               ) : (
                 filtered.map((item) => (
                   <tr key={item.id} className="hover:bg-muted/30 transition-colors">
+                    <td className="px-4 py-2.5 text-center">
+                      <span className="inline-flex items-center justify-center px-2 py-0.5 rounded-md font-mono text-xs font-semibold bg-muted text-muted-foreground border">
+                        #{item.order ?? 0}
+                      </span>
+                    </td>
                     <td className="px-4 py-2.5 text-muted-foreground font-mono text-xs">{item.code}</td>
                     <td className="px-4 py-2.5 font-medium">{item.name}</td>
                     <td className="px-4 py-2.5 hidden md:table-cell">
@@ -216,6 +254,20 @@ export function DepartemenClient({ departments }: { departments: Department[] })
             <DialogTitle>{editItem ? "Edit Departemen" : "Tambah Departemen"}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="order">Urutan Tampilan</Label>
+              <Input
+                id="order"
+                type="number"
+                min="1"
+                placeholder="1, 2, 3..."
+                value={form.order ?? ""}
+                onChange={(e) => setForm({ ...form, order: e.target.value === "" ? 0 : parseInt(e.target.value, 10) })}
+              />
+              <p className="text-[11px] text-muted-foreground">
+                Menentukan urutan prioritas kemunculan departemen di tabel dan pilihan dropdown
+              </p>
+            </div>
             <div className="space-y-1.5">
               <Label>Kode <span className="text-destructive">*</span></Label>
               <Input

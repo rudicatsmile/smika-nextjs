@@ -4,7 +4,7 @@ import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { canManageMasterData } from "@/lib/rbac"
-import { Role } from "@/app/generated/prisma/enums"
+import { Role, DepartmentType, PositionType } from "@/app/generated/prisma/enums"
 import { revalidatePath } from "next/cache"
 import { logActivity } from "@/lib/activity-log"
 
@@ -16,14 +16,32 @@ async function checkPermission() {
 }
 
 // ── Department ──────────────────────────────────────────────────────────────
-export async function createDepartment(data: { code: string; name: string; description?: string; departmentType: string; canTeach?: boolean }) {
+export async function createDepartment(data: {
+  code: string
+  name: string
+  description?: string
+  departmentType: string
+  canTeach?: boolean
+  order?: number
+}) {
   const session = await checkPermission()
   if (!session) return { error: "Akses ditolak" }
   if (!data.code || !data.name) return { error: "Kode dan nama wajib diisi" }
   try {
-    const dept = await prisma.department.create({ data })
+    const dept = await prisma.department.create({
+      data: {
+        code: data.code,
+        name: data.name,
+        description: data.description,
+        departmentType: data.departmentType as DepartmentType,
+        canTeach: data.canTeach,
+        order: data.order ?? 0,
+      },
+    })
     await logActivity({ userId: session.user.id, action: "CREATE", entity: "Department", entityId: dept.id })
     revalidatePath("/master/departemen")
+    revalidatePath("/pegawai")
+    revalidatePath("/akun")
     return { success: true, id: dept.id }
   } catch (e: any) {
     if (e?.code === "P2002") return { error: "Kode departemen sudah ada" }
@@ -31,13 +49,37 @@ export async function createDepartment(data: { code: string; name: string; descr
   }
 }
 
-export async function updateDepartment(id: string, data: { code: string; name: string; description?: string; departmentType?: string; canTeach?: boolean; isActive?: boolean }) {
+export async function updateDepartment(
+  id: string,
+  data: {
+    code: string
+    name: string
+    description?: string
+    departmentType?: string
+    canTeach?: boolean
+    order?: number
+    isActive?: boolean
+  }
+) {
   const session = await checkPermission()
   if (!session) return { error: "Akses ditolak" }
   try {
-    await prisma.department.update({ where: { id }, data })
+    await prisma.department.update({
+      where: { id },
+      data: {
+        code: data.code,
+        name: data.name,
+        description: data.description,
+        ...(data.departmentType !== undefined ? { departmentType: data.departmentType as DepartmentType } : {}),
+        ...(data.canTeach !== undefined ? { canTeach: data.canTeach } : {}),
+        ...(data.order !== undefined ? { order: data.order } : {}),
+        ...(data.isActive !== undefined ? { isActive: data.isActive } : {}),
+      },
+    })
     await logActivity({ userId: session.user.id, action: "UPDATE", entity: "Department", entityId: id })
     revalidatePath("/master/departemen")
+    revalidatePath("/pegawai")
+    revalidatePath("/akun")
     return { success: true }
   } catch (e: any) {
     if (e?.code === "P2002") return { error: "Kode departemen sudah ada" }
@@ -102,7 +144,13 @@ export async function deleteSubject(id: string) {
 }
 
 // ── Position ────────────────────────────────────────────────────────────────
-export async function createPosition(data: { name: string; description?: string; positionType: string; departmentIds?: string[] }) {
+export async function createPosition(data: {
+  name: string
+  description?: string
+  positionType: string
+  order?: number
+  departmentIds?: string[]
+}) {
   const session = await checkPermission()
   if (!session) return { error: "Akses ditolak" }
   if (!data.name) return { error: "Nama wajib diisi" }
@@ -111,7 +159,8 @@ export async function createPosition(data: { name: string; description?: string;
       data: {
         name: data.name,
         description: data.description,
-        positionType: data.positionType,
+        positionType: data.positionType as PositionType,
+        order: data.order ?? 0,
         departments: data.departmentIds
           ? {
             create: data.departmentIds.map((deptId) => ({
@@ -123,6 +172,8 @@ export async function createPosition(data: { name: string; description?: string;
     })
     await logActivity({ userId: session.user.id, action: "CREATE", entity: "Position", entityId: pos.id })
     revalidatePath("/master/jabatan")
+    revalidatePath("/pegawai")
+    revalidatePath("/laporan/jabatan")
     return { success: true, id: pos.id }
   } catch (e: any) {
     if (e?.code === "P2002") return { error: "Jabatan sudah ada" }
@@ -130,7 +181,17 @@ export async function createPosition(data: { name: string; description?: string;
   }
 }
 
-export async function updatePosition(id: string, data: { name: string; description?: string; positionType?: string; isActive?: boolean; departmentIds?: string[] }) {
+export async function updatePosition(
+  id: string,
+  data: {
+    name: string
+    description?: string
+    positionType?: string
+    order?: number
+    isActive?: boolean
+    departmentIds?: string[]
+  }
+) {
   const session = await checkPermission()
   if (!session) return { error: "Akses ditolak" }
   try {
@@ -140,8 +201,9 @@ export async function updatePosition(id: string, data: { name: string; descripti
       data: {
         name: data.name,
         description: data.description,
-        positionType: data.positionType,
-        isActive: data.isActive,
+        ...(data.positionType !== undefined ? { positionType: data.positionType as PositionType } : {}),
+        ...(data.order !== undefined ? { order: data.order } : {}),
+        ...(data.isActive !== undefined ? { isActive: data.isActive } : {}),
       },
     })
 
@@ -164,6 +226,8 @@ export async function updatePosition(id: string, data: { name: string; descripti
     }
 
     revalidatePath("/master/jabatan")
+    revalidatePath("/pegawai")
+    revalidatePath("/laporan/jabatan")
     return { success: true }
   } catch (e: any) {
     if (e?.code === "P2002") return { error: "Jabatan sudah ada" }

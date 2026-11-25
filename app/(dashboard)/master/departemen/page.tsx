@@ -4,7 +4,9 @@ import { DepartemenClient } from "./departemen-client"
 export const dynamic = "force-dynamic"
 
 export default async function DepartemenPage() {
-  const departments = await prisma.department.findMany({ orderBy: { name: "asc" } })
+  const departments = await prisma.department.findMany({
+    orderBy: [{ order: "asc" }, { name: "asc" }],
+  })
   return (
     <div className="space-y-4">
       <div>

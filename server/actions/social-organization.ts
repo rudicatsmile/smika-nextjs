@@ -3,40 +3,30 @@
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
-import { canManageEmployees, canViewOwnDepartmentEmployees, canEditOwnEmployeeData } from "@/lib/rbac"
+import { canViewAll, canViewEmployeeList, canEditOwnEmployeeData } from "@/lib/rbac"
+import { resolveEmployeeAccessScope, canAccessEmployeeRecord, canMutateEmployeeRecord } from "@/lib/employee-scope"
 import { Role } from "@/app/generated/prisma/enums"
 import { revalidatePath } from "next/cache"
 import { logActivity } from "@/lib/activity-log"
 
-async function checkPermission() {
+async function checkEmployeeAccess(employeeId: string, requireMutate = false) {
   const session = await getServerSession(authOptions)
   if (!session?.user?.id) return null
-  const role = session.user.role as Role
-  if (!canManageEmployees(role) && !canViewOwnDepartmentEmployees(role) && !canEditOwnEmployeeData(role)) return null
-  return session
-}
 
-async function checkEmployeeAccess(employeeId: string) {
-  const session = await checkPermission()
-  if (!session) return null
+  const scope = await resolveEmployeeAccessScope(session.user)
+  const targetEmployee = await prisma.employee.findUnique({
+    where: { id: employeeId },
+    select: { id: true, departmentId: true },
+  })
+  if (!targetEmployee) return null
 
-  const role = session.user.role as Role
-  const userEmployeeId = session.user.employeeId as string | undefined
-
-  if (canEditOwnEmployeeData(role) && userEmployeeId && userEmployeeId !== employeeId) {
-    return null
-  }
-
-  if (canViewOwnDepartmentEmployees(role) && userEmployeeId) {
-    const user = await prisma.employee.findUnique({
-      where: { id: userEmployeeId },
-      select: { departmentId: true },
-    })
-    const targetEmployee = await prisma.employee.findUnique({
-      where: { id: employeeId },
-      select: { departmentId: true },
-    })
-    if (user?.departmentId !== targetEmployee?.departmentId) {
+  if (requireMutate) {
+    const isSelfEdit = scope.isSelfScoped && scope.selfEmployeeId === employeeId
+    if (!isSelfEdit && !canMutateEmployeeRecord(scope, targetEmployee)) {
+      return null
+    }
+  } else {
+    if (!canAccessEmployeeRecord(scope, targetEmployee)) {
       return null
     }
   }
@@ -51,7 +41,7 @@ export async function createSocialOrganization(data: {
   position?: string
   joinDate?: Date | string
 }) {
-  const session = await checkEmployeeAccess(data.employeeId)
+  const session = await checkEmployeeAccess(data.employeeId, true)
   if (!session) return { error: "Anda tidak memiliki izin untuk menambahkan organisasi masyarakat" }
   if (!data.employeeId) return { error: "Employee is required" }
 
@@ -67,6 +57,7 @@ export async function createSocialOrganization(data: {
     })
     await logActivity({ userId: session.user.id, action: "CREATE", entity: "SocialOrganization", entityId: socialOrganization.id })
     revalidatePath(`/pegawai/${data.employeeId}`)
+    revalidatePath("/data-organisasi-kemasyarakatan")
     return { success: true, id: socialOrganization.id }
   } catch (e: any) {
     return { error: "Failed to create social organization" }
@@ -79,15 +70,12 @@ export async function updateSocialOrganization(id: string, data: {
   position?: string
   joinDate?: Date | string
 }) {
-  const session = await checkPermission()
-  if (!session) return { error: "Anda tidak memiliki izin untuk mengedit organisasi masyarakat" }
-
   try {
     const existing = await prisma.socialOrganization.findUnique({ where: { id } })
     if (!existing) return { error: "Social organization not found" }
 
-    const accessCheck = await checkEmployeeAccess(existing.employeeId)
-    if (!accessCheck) return { error: "Anda tidak memiliki izin untuk mengedit organisasi masyarakat ini" }
+    const session = await checkEmployeeAccess(existing.employeeId, true)
+    if (!session) return { error: "Anda tidak memiliki izin untuk mengedit organisasi masyarakat ini" }
 
     await prisma.socialOrganization.update({
       where: { id },
@@ -95,11 +83,12 @@ export async function updateSocialOrganization(id: string, data: {
         organizationName: data.organizationName,
         organizationAddress: data.organizationAddress,
         position: data.position,
-        joinDate: data.joinDate ? new Date(data.joinDate) : undefined,
+        joinDate: data.joinDate ? new Date(data.joinDate) : null,
       },
     })
     await logActivity({ userId: session.user.id, action: "UPDATE", entity: "SocialOrganization", entityId: id })
     revalidatePath(`/pegawai/${existing.employeeId}`)
+    revalidatePath("/data-organisasi-kemasyarakatan")
     return { success: true }
   } catch (e: any) {
     return { error: "Failed to update social organization" }
@@ -107,19 +96,17 @@ export async function updateSocialOrganization(id: string, data: {
 }
 
 export async function deleteSocialOrganization(id: string) {
-  const session = await checkPermission()
-  if (!session) return { error: "Anda tidak memiliki izin untuk menghapus organisasi masyarakat" }
-
   try {
     const existing = await prisma.socialOrganization.findUnique({ where: { id } })
     if (!existing) return { error: "Social organization not found" }
 
-    const accessCheck = await checkEmployeeAccess(existing.employeeId)
-    if (!accessCheck) return { error: "Anda tidak memiliki izin untuk menghapus organisasi masyarakat ini" }
+    const session = await checkEmployeeAccess(existing.employeeId, true)
+    if (!session) return { error: "Anda tidak memiliki izin untuk menghapus organisasi masyarakat ini" }
 
     await prisma.socialOrganization.delete({ where: { id } })
     await logActivity({ userId: session.user.id, action: "DELETE", entity: "SocialOrganization", entityId: id })
     revalidatePath(`/pegawai/${existing.employeeId}`)
+    revalidatePath("/data-organisasi-kemasyarakatan")
     return { success: true }
   } catch (e: any) {
     return { error: "Failed to delete social organization" }
@@ -127,15 +114,8 @@ export async function deleteSocialOrganization(id: string) {
 }
 
 export async function getSocialOrganizations(employeeId: string) {
-  const session = await checkPermission()
+  const session = await checkEmployeeAccess(employeeId, false)
   if (!session) return { error: "Anda tidak memiliki izin untuk melihat organisasi masyarakat" }
-
-  const role = session.user.role as Role
-  const userEmployeeId = session.user.employeeId as string | undefined
-
-  if (canEditOwnEmployeeData(role) && userEmployeeId && userEmployeeId !== employeeId) {
-    return { error: "Anda hanya dapat melihat organisasi masyarakat diri sendiri" }
-  }
 
   try {
     const socialOrganizations = await prisma.socialOrganization.findMany({
@@ -153,48 +133,53 @@ export async function getAllSocialOrganizations(filters?: {
   employeeId?: string
   search?: string
 }) {
-  const session = await checkPermission()
-  if (!session) return { error: "Anda tidak memiliki izin untuk melihat organisasi masyarakat" }
+  const session = await getServerSession(authOptions)
+  if (!session?.user?.id) return { error: "Anda tidak memiliki izin untuk melihat organisasi masyarakat" }
 
   const role = session.user.role as Role
-  const userEmployeeId = session.user.employeeId as string | undefined
+  if (!canViewEmployeeList(role) && !canViewAll(role) && !canEditOwnEmployeeData(role)) {
+    return { error: "Anda tidak memiliki izin untuk melihat organisasi masyarakat" }
+  }
+
+  const scope = await resolveEmployeeAccessScope(session.user)
 
   try {
-    const where: any = {}
+    const andConditions: any[] = []
 
-    if (canEditOwnEmployeeData(role) && userEmployeeId) {
-      where.employeeId = userEmployeeId
-    } else if (filters?.employeeId) {
-      where.employeeId = filters.employeeId
-    } else if (filters?.departmentId) {
-      where.employee = {
-        departmentId: filters.departmentId,
-      }
-    }
-
-    if (canViewOwnDepartmentEmployees(role) && userEmployeeId && !filters?.employeeId) {
-      const user = await prisma.employee.findUnique({
-        where: { id: userEmployeeId },
-        select: { departmentId: true },
+    if (scope.isSelfScoped) {
+      andConditions.push(
+        scope.selfEmployeeId ? { employeeId: scope.selfEmployeeId } : { employeeId: "__NO_EMPLOYEE__" }
+      )
+    } else if (scope.isUnitScoped) {
+      andConditions.push({
+        employee: scope.unitDepartmentId
+          ? { departmentId: scope.unitDepartmentId }
+          : { departmentId: "__UNASSIGNED_UNIT__" },
       })
-      if (user?.departmentId) {
-        where.employee = {
-          departmentId: user.departmentId,
-        }
+      if (filters?.employeeId) {
+        andConditions.push({ employeeId: filters.employeeId })
+      }
+    } else {
+      if (filters?.employeeId) {
+        andConditions.push({ employeeId: filters.employeeId })
+      } else if (filters?.departmentId) {
+        andConditions.push({ employee: { departmentId: filters.departmentId } })
       }
     }
 
     if (filters?.search) {
-      where.OR = [
-        { organizationName: { contains: filters.search } },
-        { organizationAddress: { contains: filters.search } },
-        { position: { contains: filters.search } },
-        { employee: { fullName: { contains: filters.search } } },
-      ]
+      andConditions.push({
+        OR: [
+          { organizationName: { contains: filters.search } },
+          { organizationAddress: { contains: filters.search } },
+          { position: { contains: filters.search } },
+          { employee: { fullName: { contains: filters.search } } },
+        ],
+      })
     }
 
     const socialOrganizations = await prisma.socialOrganization.findMany({
-      where,
+      where: andConditions.length > 0 ? { AND: andConditions } : undefined,
       include: {
         employee: {
           select: {

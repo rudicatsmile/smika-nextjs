@@ -5,7 +5,7 @@ export const dynamic = "force-dynamic"
 
 export default async function JabatanPage() {
   const positions = await prisma.position.findMany({
-    orderBy: { name: "asc" },
+    orderBy: [{ order: "asc" }, { name: "asc" }],
     include: {
       departments: {
         include: {
@@ -21,7 +21,7 @@ export default async function JabatanPage() {
   })
 
   const departments = await prisma.department.findMany({
-    orderBy: { name: "asc" },
+    orderBy: [{ order: "asc" }, { name: "asc" }],
     select: {
       id: true,
       name: true,

@@ -13,7 +13,7 @@ export default async function DataDokumenPentingPage() {
 
   let departments = await prisma.department.findMany({
     where: { isActive: true },
-    orderBy: { name: "asc" },
+    orderBy: [{ order: "asc" }, { name: "asc" }],
   })
 
   if (role === "PIMPINAN" && userEmployeeId) {

@@ -234,3 +234,31 @@ export function canMutateEmployeeRecord(
   }
   return false
 }
+
+export interface SortableEmployeeItem {
+  id: string
+  fullName: string
+  position?: { order?: number | null } | null
+  department?: { order?: number | null } | null
+}
+
+/**
+ * Mengurutkan pegawai secara hierarkis:
+ * 1. Urutan Jabatan (`position.order` ASC — pegawai tanpa jabatan di paling bawah)
+ * 2. Urutan Unit/Departemen (`department.order` ASC — tanpa departemen di bawah)
+ * 3. Nama Lengkap (`fullName` ASC)
+ */
+export function compareEmployeesByHierarchy(
+  a: SortableEmployeeItem,
+  b: SortableEmployeeItem
+): number {
+  const posA = a.position?.order ?? Number.MAX_SAFE_INTEGER
+  const posB = b.position?.order ?? Number.MAX_SAFE_INTEGER
+  if (posA !== posB) return posA - posB
+
+  const deptA = a.department?.order ?? Number.MAX_SAFE_INTEGER
+  const deptB = b.department?.order ?? Number.MAX_SAFE_INTEGER
+  if (deptA !== deptB) return deptA - deptB
+
+  return a.fullName.localeCompare(b.fullName, "id")
+}

@@ -22,7 +22,7 @@ export default async function AkunPage() {
     prisma.department.findMany({
       where: { isActive: true },
       select: { id: true, name: true, code: true },
-      orderBy: { code: "asc" },
+      orderBy: [{ order: "asc" }, { name: "asc" }],
     }),
   ])
 

@@ -13,7 +13,7 @@ export default async function DataKesehatanPage() {
 
   let departments = await prisma.department.findMany({
     where: { isActive: true },
-    orderBy: { name: "asc" },
+    orderBy: [{ order: "asc" }, { name: "asc" }],
   })
 
   let whereClause: any = { employmentStatus: "AKTIF" }

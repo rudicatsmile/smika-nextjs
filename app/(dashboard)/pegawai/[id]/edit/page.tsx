@@ -37,10 +37,13 @@ export default async function EditPegawaiPage({
       where: scope.isUnitScoped && scope.unitDepartmentId
         ? { id: scope.unitDepartmentId, isActive: true }
         : { isActive: true },
-      orderBy: { name: "asc" },
+      orderBy: [{ order: "asc" }, { name: "asc" }],
       select: { id: true, name: true, canTeach: true },
     }),
-    prisma.position.findMany({ where: { isActive: true }, orderBy: { name: "asc" } }),
+    prisma.position.findMany({
+      where: { isActive: true },
+      orderBy: [{ order: "asc" }, { name: "asc" }],
+    }),
     prisma.positionDepartment.findMany(),
     prisma.religion.findMany({ where: { isActive: true } }),
     prisma.bloodType.findMany({ where: { isActive: true } }),
