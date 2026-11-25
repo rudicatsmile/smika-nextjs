@@ -169,6 +169,7 @@ export function buildRoleNavigation(
           {
             groupTitle: "Layanan & Administrasi Mandiri",
             items: [
+              { title: "Portal Pegawai Terintegrasi", href: "/portal", icon: User, badge: "Baru", desc: "Ringkasan profil, berkas, DP3 & aktivitas" },
               { title: "Profil & Biodata Pribadi", href: `${profileHref}?tab=personal`, icon: User, desc: "Data diri, NIP, & unit dinas" },
               { title: "Form Kesediaan Mengajar", href: "/kesediaan", icon: Handshake, badge: "Penting", desc: "Kesanggupan beban kerja & hari" },
               { title: "Upload Dokumen Penting", href: "/data-dokumen-penting", icon: Upload, desc: "Berkas digital kepegawaian" },

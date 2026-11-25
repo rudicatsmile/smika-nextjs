@@ -9,7 +9,7 @@ import {
   Phone, Mail, Calendar, Users as UsersIcon, Award, ScrollText, CheckCircle,
   Building2 as BuildingIcon, Heart as HeartIcon, Users as UsersOrgIcon,
   ChevronLeft, ChevronRight, Copy, Check, ExternalLink, ShieldCheck,
-  CreditCard, Sparkles, KeyRound, FilePenLine
+  CreditCard, Sparkles, KeyRound, FilePenLine, Printer, QrCode
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -279,7 +279,21 @@ export function EmployeeDetailClient({
           </Link>
         </Button>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          <Button variant="outline" size="sm" asChild className="gap-1.5 text-xs rounded-xl h-8">
+            <Link href={`/pegawai/${employee.id}/kartu`}>
+              <QrCode className="h-3.5 w-3.5" />
+              <span>Kartu ID &amp; QR</span>
+            </Link>
+          </Button>
+
+          <Button variant="outline" size="sm" asChild className="gap-1.5 text-xs rounded-xl h-8">
+            <Link href={`/pegawai/${employee.id}/cv`}>
+              <Printer className="h-3.5 w-3.5" />
+              <span>Cetak CV PDF</span>
+            </Link>
+          </Button>
+
           {session?.user?.employeeId === employee.id && role === "PEGAWAI" && (
             <Button variant="outline" size="sm" asChild className="gap-1.5 text-xs rounded-xl h-8 border-primary/20 text-primary hover:bg-primary/10">
               <Link href="/pengajuan-koreksi">

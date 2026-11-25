@@ -15,6 +15,7 @@ import {
   canMutateEmployeeChildData,
 } from "@/lib/employee-scope"
 import { createNotification } from "@/server/actions/notification"
+import { sendWhatsAppMessage } from "@/lib/whatsapp"
 
 export async function submitDataCorrectionRequest(input: {
   fieldKey: string
@@ -195,7 +196,7 @@ export async function reviewDataCorrectionRequest(input: {
     where: { id: input.requestId },
     include: {
       employee: {
-        select: { id: true, fullName: true, departmentId: true },
+        select: { id: true, fullName: true, departmentId: true, phoneNumber: true },
       },
     },
   })
@@ -279,7 +280,12 @@ export async function reviewDataCorrectionRequest(input: {
     return { success: false, error: message }
   }
 
-  // Kirim notifikasi ke pengaju
+  // Kirim notifikasi ke pengaju (In-App + WhatsApp jika aktif)
+  const notifMessage =
+    input.decision === "APPROVED"
+      ? `Perubahan ${req.fieldLabel} menjadi "${formatCorrectionValue(req.fieldKey, req.newValue)}" telah disetujui dan diterapkan.`
+      : `Pengajuan perubahan ${req.fieldLabel} ditolak. Catatan: ${note}`
+
   try {
     await createNotification({
       userId: req.requestedById,
@@ -288,12 +294,17 @@ export async function reviewDataCorrectionRequest(input: {
         input.decision === "APPROVED"
           ? "Koreksi Data Disetujui"
           : "Koreksi Data Ditolak",
-      message:
-        input.decision === "APPROVED"
-          ? `Perubahan ${req.fieldLabel} menjadi "${formatCorrectionValue(req.fieldKey, req.newValue)}" telah disetujui dan diterapkan.`
-          : `Pengajuan perubahan ${req.fieldLabel} ditolak. Catatan: ${note}`,
+      message: notifMessage,
       link: "/pengajuan-koreksi",
     })
+
+    if (req.employee.phoneNumber) {
+      await sendWhatsAppMessage({
+        phoneNumber: req.employee.phoneNumber,
+        employeeId: req.employee.id,
+        message: `[SIMKA9] Halo ${req.employee.fullName}, ${notifMessage}`,
+      })
+    }
   } catch {
     // silent
   }

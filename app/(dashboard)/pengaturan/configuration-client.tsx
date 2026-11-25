@@ -8,7 +8,8 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { toast } from "sonner"
-import { Loader2, Upload, X } from "lucide-react"
+import { Loader2, Upload, X, MessageCircle } from "lucide-react"
+import { Switch } from "@/components/ui/switch"
 import { updateAppConfiguration } from "@/server/actions/app-configuration"
 
 interface ConfigurationData {
@@ -33,6 +34,10 @@ interface ConfigurationData {
   footerText?: string
   activeYearId?: string
   activeSemester?: number
+  waEnabled?: boolean
+  waProvider?: string
+  waApiUrl?: string | null
+  waApiToken?: string | null
   activeYear?: {
     id: string
     name: string
@@ -102,7 +107,11 @@ export function ConfigurationClient({ initialData }: { initialData: Configuratio
     setIsSubmitting(true)
 
     try {
-      const result = await updateAppConfiguration(form)
+      const result = await updateAppConfiguration({
+        ...form,
+        waApiUrl: form.waApiUrl ?? undefined,
+        waApiToken: form.waApiToken ?? undefined,
+      })
       if (result.success) {
         toast.success("Konfigurasi berhasil disimpan")
       } else {
@@ -475,6 +484,80 @@ export function ConfigurationClient({ initialData }: { initialData: Configuratio
                   </SelectContent>
                 </Select>
               </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* WhatsApp Gateway */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <MessageCircle className="h-5 w-5 text-green-600" />
+              WhatsApp Gateway Notifikasi
+            </CardTitle>
+            <CardDescription>
+              Integrasi pengiriman pengingat &amp; notifikasi kepegawaian via WhatsApp (Fonnte, Wablas, atau Webhook Kustom)
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between rounded-lg border p-3">
+              <div>
+                <Label htmlFor="waEnabled" className="text-sm font-medium">
+                  Aktifkan WhatsApp Gateway
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  Jika aktif, persetujuan koreksi data dan broadcast pengingat akan dikirim via WhatsApp.
+                </p>
+              </div>
+              <Switch
+                id="waEnabled"
+                checked={Boolean(form.waEnabled)}
+                onCheckedChange={(checked) => setForm({ ...form, waEnabled: checked })}
+              />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="waProvider">Provider Gateway</Label>
+                <Select
+                  value={form.waProvider || "FONNTE"}
+                  onValueChange={(value) => setForm({ ...form, waProvider: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Pilih provider" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="FONNTE">Fonnte (api.fonnte.com)</SelectItem>
+                    <SelectItem value="WABLAS">Wablas</SelectItem>
+                    <SelectItem value="CUSTOM">Custom Webhook (POST JSON)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="waApiUrl">Endpoint API URL</Label>
+                <Input
+                  id="waApiUrl"
+                  value={form.waApiUrl || ""}
+                  onChange={(e) => setForm({ ...form, waApiUrl: e.target.value })}
+                  placeholder={
+                    (form.waProvider || "FONNTE") === "FONNTE"
+                      ? "https://api.fonnte.com/send (default)"
+                      : "https://domain-anda.wablas.com/api/send-message"
+                  }
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="waApiToken">API Token / Key</Label>
+              <Input
+                id="waApiToken"
+                type="password"
+                value={form.waApiToken || ""}
+                onChange={(e) => setForm({ ...form, waApiToken: e.target.value })}
+                placeholder="Masukkan API Token dari dashboard Fonnte / Wablas"
+              />
             </div>
           </CardContent>
         </Card>

@@ -7,7 +7,7 @@ import { useState, useEffect } from "react"
 import { cn } from "@/lib/utils"
 import {
   LayoutDashboard, Users, Database, Settings, FileText,
-  ChevronLeft, ChevronRight, BookOpen, Building2, Briefcase, Award, DropletIcon, Heart, GraduationCap, History, Users as UsersIcon, ScrollText, CheckCircle, Upload, Handshake, Calendar, BadgeCheck, ClipboardCheck, ChevronDown, Settings as SettingsIcon, BarChart3, Book, Bell, PieChart, FileCheck2, FilePenLine
+  ChevronLeft, ChevronRight, BookOpen, Building2, Briefcase, Award, DropletIcon, Heart, GraduationCap, History, Users as UsersIcon, ScrollText, CheckCircle, Upload, Handshake, Calendar, BadgeCheck, ClipboardCheck, ChevronDown, Settings as SettingsIcon, BarChart3, Book, Bell, PieChart, FileCheck2, FilePenLine, MessageCircle, UserCheck
 } from "lucide-react"
 import { canViewLogs, canManageMasterData, canManageUsers, canViewEmployeeList, canViewDP3, canViewKesediaan, canManageAppConfig, canViewDocuments } from "@/lib/rbac"
 import { Role } from "@/app/generated/prisma/enums"
@@ -24,6 +24,10 @@ function buildNavItems(role?: Role): NavItem[] {
   const items: NavItem[] = [
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   ]
+
+  if (role === "PEGAWAI") {
+    items.push({ href: "/portal", label: "Portal Pegawai", icon: UserCheck })
+  }
 
   if (role && canViewEmployeeList(role)) {
     items.push({ href: "/pegawai", label: role === "PEGAWAI" ? "Profil Saya" : "Data Pegawai", icon: Users })
@@ -85,6 +89,9 @@ function buildNavItems(role?: Role): NavItem[] {
 
   if (role && canViewDP3(role)) {
     items.push({ href: "/dp3", label: "Penilaian DP3", icon: ClipboardCheck })
+    if (role !== "PEGAWAI") {
+      items.push({ href: "/dp3/analitik", label: "Analitik DP3", icon: BarChart3 })
+    }
   }
 
   if (role && canManageMasterData(role)) {
@@ -128,6 +135,11 @@ function buildNavItems(role?: Role): NavItem[] {
 
   // Notifikasi — semua user
   items.push({ href: "/notifikasi", label: "Notifikasi", icon: Bell })
+
+  // WhatsApp Gateway — SUPER_ADMIN & HR
+  if (role && (role === "SUPER_ADMIN" || role === "HR")) {
+    items.push({ href: "/notifikasi/whatsapp", label: "WhatsApp Gateway", icon: MessageCircle })
+  }
 
   return items
 }

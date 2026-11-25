@@ -65,6 +65,10 @@ export async function updateAppConfiguration(data: {
   footerText?: string
   activeYearId?: string
   activeSemester?: number
+  waEnabled?: boolean
+  waProvider?: string
+  waApiUrl?: string
+  waApiToken?: string
 }) {
   const session = await checkPermission()
   if (!session) return { error: "Access denied" }

@@ -554,6 +554,23 @@ model AppConfiguration {
   activeYearId       String?
   activeYear         Year?    @relation(fields: [activeYearId], references: [id])
   activeSemester     Int?
+  waEnabled          Boolean  @default(false)
+  waProvider         String   @default("FONNTE")
+  waApiUrl           String?
+  waApiToken         String?
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
+}
+
+model WhatsAppLog {
+  id          String   @id @default(cuid())
+  employeeId  String?
+  phoneNumber String
+  message     String   @db.Text
+  provider    String
+  status      String
+  response    String?  @db.Text
+  createdAt   DateTime @default(now())
+
+  @@index([createdAt])
 }

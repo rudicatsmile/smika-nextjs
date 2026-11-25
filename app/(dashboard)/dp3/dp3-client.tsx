@@ -8,7 +8,8 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
-import { CheckCircle, Building2, Loader2, ClipboardCheck } from "lucide-react"
+import { CheckCircle, Building2, Loader2, ClipboardCheck, BarChart3 } from "lucide-react"
+import Link from "next/link"
 import { getEmployeesWithDP3Status } from "@/server/actions/dp3"
 import { DP3FormDialog } from "@/components/dp3/dp3-form-dialog"
 import { canAssessDP3 } from "@/lib/rbac"
@@ -120,9 +121,19 @@ export function DP3Client({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-2">
-        <ClipboardCheck className="h-6 w-6" />
-        <h1 className="text-2xl font-bold">Penilaian Pelaksanaan Pekerjaan (DP3)</h1>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <ClipboardCheck className="h-6 w-6" />
+          <h1 className="text-2xl font-bold">Penilaian Pelaksanaan Pekerjaan (DP3)</h1>
+        </div>
+        {role !== "PEGAWAI" && (
+          <Button asChild variant="outline" size="sm">
+            <Link href="/dp3/analitik">
+              <BarChart3 className="h-4 w-4 mr-2" />
+              Analitik &amp; Tren DP3
+            </Link>
+          </Button>
+        )}
       </div>
 
       <Card>
