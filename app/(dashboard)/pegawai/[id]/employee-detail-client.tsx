@@ -9,7 +9,7 @@ import {
   Phone, Mail, Calendar, Users as UsersIcon, Award, ScrollText, CheckCircle,
   Building2 as BuildingIcon, Heart as HeartIcon, Users as UsersOrgIcon,
   ChevronLeft, ChevronRight, Copy, Check, ExternalLink, ShieldCheck,
-  CreditCard, Sparkles, KeyRound
+  CreditCard, Sparkles, KeyRound, FilePenLine
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -280,6 +280,15 @@ export function EmployeeDetailClient({
         </Button>
 
         <div className="flex items-center gap-2">
+          {session?.user?.employeeId === employee.id && role === "PEGAWAI" && (
+            <Button variant="outline" size="sm" asChild className="gap-1.5 text-xs rounded-xl h-8 border-primary/20 text-primary hover:bg-primary/10">
+              <Link href="/pengajuan-koreksi">
+                <FilePenLine className="h-3.5 w-3.5" />
+                <span>Ajukan Koreksi Data</span>
+              </Link>
+            </Button>
+          )}
+
           {session?.user?.employeeId === employee.id && (
             <Button variant="outline" size="sm" asChild className="gap-1.5 text-xs rounded-xl h-8 border-primary/20 text-primary hover:bg-primary/10">
               <Link href="/ganti-password">

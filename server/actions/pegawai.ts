@@ -115,10 +115,12 @@ export async function updateEmployee(id: string, data: EmployeeFormData) {
   if (!existing) return { error: "Data pegawai tidak ditemukan" }
 
   if (scope.isSelfScoped) {
-    if (scope.selfEmployeeId !== id) {
-      return { error: "Anda hanya dapat mengedit data diri sendiri" }
+    return {
+      error:
+        "Perubahan data pribadi pegawai harus diajukan melalui menu Koreksi Data Mandiri agar diverifikasi HR.",
     }
-  } else if (!canMutateEmployeeRecord(scope, existing)) {
+  }
+  if (!canMutateEmployeeRecord(scope, existing)) {
     return { error: "Anda tidak memiliki izin untuk mengedit pegawai di unit ini" }
   }
 

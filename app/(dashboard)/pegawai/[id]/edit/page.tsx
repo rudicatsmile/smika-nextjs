@@ -17,8 +17,10 @@ export default async function EditPegawaiPage({
   const scope = await resolveEmployeeAccessScope(session.user)
 
   const { id } = await params
-  const isSelfEdit = scope.isSelfScoped && scope.selfEmployeeId === id
-  if (!scope.canMutateEmployees && !isSelfEdit) {
+  if (scope.isSelfScoped) {
+    redirect("/pengajuan-koreksi")
+  }
+  if (!scope.canMutateEmployees) {
     redirect("/pegawai")
   }
 
@@ -53,7 +55,7 @@ export default async function EditPegawaiPage({
   ])
 
   if (!employee) notFound()
-  if (!isSelfEdit && !canMutateEmployeeRecord(scope, employee)) {
+  if (!canMutateEmployeeRecord(scope, employee)) {
     notFound()
   }
 
